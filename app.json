@@ -22,7 +22,13 @@
       "package": "com.rackslabs.prompter",
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_AUDIO"
       ],
       "adaptiveIcon": {
         "backgroundColor": "#000000",
@@ -50,6 +56,12 @@
           "backgroundColor": "#0B0B0C"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "820acea3-dd8b-4fce-8bd1-7f5061fb3496"
+      }
+    },
+    "owner": "jaimeracks"
   }
 }
