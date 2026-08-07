@@ -9,9 +9,10 @@ Apple van anotados junto a cada campo, y todos los textos caben.
 
 | Campo                | Valor                                                    |
 | -------------------- | -------------------------------------------------------- |
-| Nombre (30)          | `Prompter — Teleprompter`                                 |
-| Subtítulo (30)       | `Lee el guion y grábate`                                  |
+| Nombre (30)          | `Teleprompter y Cámara` — 21                              |
+| Subtítulo (30)       | `Sin cuota ni marca de agua` — 26                         |
 | Bundle ID            | `com.rackslabs.prompter`                                  |
+| ID de App Store      | `6799003999`                                              |
 | SKU                  | `PROMPTER-IOS-001`                                        |
 | Idioma principal     | Español (España)                                          |
 | Categoría principal  | Fotografía y vídeo                                        |
@@ -19,9 +20,13 @@ Apple van anotados junto a cada campo, y todos los textos caben.
 | Precio               | Gratis                                                    |
 | Clasificación        | 4+                                                        |
 
-`Prompter` a secas puede estar cogido en la App Store. Si lo rechazan, la
-alternativa es `Prompter Studio` o `Guion — Teleprompter`, ambos dentro de los
-30 caracteres.
+El nombre se cambia en App Store Connect → App Information → Name, y es editable
+mientras la app no esté publicada.
+
+En la pantalla de inicio del iPhone la app se sigue llamando **Prompter** (el
+campo `name` de `app.json`). No tiene por qué coincidir con el de la tienda, y de
+hecho conviene que no: bajo el icono solo caben unos doce caracteres antes de que
+iOS lo recorte.
 
 ---
 
@@ -76,11 +81,12 @@ Este campo se puede cambiar sin pasar por revisión. Úsalo para novedades.
 ## Palabras clave (100, separadas por comas y sin espacios)
 
 ```
-teleprompter,guion,grabar,camara,video,reels,shorts,tiktok,youtube,creador,texto,apuntador,vertical
+guion,grabar,video,reels,shorts,tiktok,youtube,creador,texto,apuntador,vertical,prompter,discurso
 ```
 
-99 caracteres. No repitas aquí el nombre ni el subtítulo: Apple ya los indexa, y
-gastar espacio en ellos es tirarlo.
+97 caracteres. **No aparecen «teleprompter» ni «cámara» a propósito**: ya están en
+el nombre, Apple los indexa desde ahí, y repetirlos aquí sería tirar 20
+caracteres. Lo mismo con «cuota», «marca» y «agua», que van en el subtítulo.
 
 ---
 

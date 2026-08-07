@@ -29,7 +29,8 @@
     "production": {
       "ios": {
         "appleId": "hello@rackslabs.com",
-        "appleTeamId": "25G3Q8388L"
+        "appleTeamId": "25G3Q8388L",
+        "ascAppId": "6799003999"
       }
     }
   }
