@@ -1,0 +1,6 @@
+{
+  "NSCameraUsageDescription": "Para grabarte mientras lees el guion.",
+  "NSMicrophoneUsageDescription": "Para grabar tu voz junto al vídeo.",
+  "NSPhotoLibraryAddUsageDescription": "Para guardar las tomas en tu Carrete.",
+  "NSPhotoLibraryUsageDescription": "Para guardar las tomas en tu Carrete."
+}

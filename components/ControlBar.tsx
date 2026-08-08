@@ -1,5 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { t } from '../lib/i18n';
+
 type Props = {
   isRecording: boolean;
   isBusy: boolean;
@@ -33,7 +35,7 @@ export function ControlBar({
         <Pressable
           style={styles.round}
           onPress={onOpenSettings}
-          accessibilityLabel="Ajustes del guion">
+          accessibilityLabel={t('controls.settings')}>
           <Text style={styles.glyph}>≡</Text>
         </Pressable>
       </View>
@@ -44,7 +46,7 @@ export function ControlBar({
           onPress={onToggleRecord}
           disabled={isBusy}
           style={[styles.shutter, isBusy && styles.dimmed]}
-          accessibilityLabel={isRecording ? 'Parar de grabar' : 'Grabar'}>
+          accessibilityLabel={isRecording ? t('controls.stop') : t('controls.record')}>
           <View style={isRecording ? styles.shutterStop : styles.shutterIdle} />
         </Pressable>
       </View>
@@ -54,7 +56,7 @@ export function ControlBar({
           style={[styles.round, !canFlip && styles.dimmed]}
           onPress={onFlip}
           disabled={!canFlip}
-          accessibilityLabel="Cambiar de cámara">
+          accessibilityLabel={t('controls.flip')}>
           <Text style={styles.glyph}>⟳</Text>
         </Pressable>
       </View>

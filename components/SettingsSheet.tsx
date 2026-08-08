@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 
+import { formatDecimal, t } from '../lib/i18n';
 import { LIMITS, type PrompterSettings } from '../lib/prompterSettings';
 
 type Props = {
@@ -28,9 +29,9 @@ export function SettingsSheet({ visible, settings, update, onClose, onRewind }: 
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <KeyboardAvoidingView behavior="padding" style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>Guion y ajustes</Text>
+          <Text style={styles.title}>{t('settings.title')}</Text>
           <Pressable onPress={onClose} hitSlop={10}>
-            <Text style={styles.done}>Listo</Text>
+            <Text style={styles.done}>{t('settings.done')}</Text>
           </Pressable>
         </View>
 
@@ -38,51 +39,51 @@ export function SettingsSheet({ visible, settings, update, onClose, onRewind }: 
           style={styles.body}
           contentContainerStyle={styles.bodyContent}
           keyboardShouldPersistTaps="handled">
-          <Text style={styles.sectionLabel}>Guion</Text>
+          <Text style={styles.sectionLabel}>{t('settings.section.script')}</Text>
           <TextInput
             style={styles.textArea}
             multiline
             value={settings.text}
             onChangeText={(text) => update({ text })}
-            placeholder="Pega aquí tu guion…"
+            placeholder={t('settings.placeholder')}
             placeholderTextColor="#666"
             textAlignVertical="top"
           />
 
           <Pressable style={styles.secondaryButton} onPress={onRewind}>
-            <Text style={styles.secondaryButtonText}>Volver al principio</Text>
+            <Text style={styles.secondaryButtonText}>{t('settings.rewind')}</Text>
           </Pressable>
 
           <LabeledSlider
-            label="Tamaño de letra"
+            label={t('settings.fontSize')}
             value={settings.fontSize}
             limits={LIMITS.fontSize}
             format={(value) => `${Math.round(value)} px`}
             onChange={(fontSize) => update({ fontSize })}
           />
           <LabeledSlider
-            label="Velocidad"
+            label={t('settings.speed')}
             value={settings.speed}
             limits={LIMITS.speed}
             format={(value) => String(Math.round(value))}
             onChange={(speed) => update({ speed })}
           />
           <LabeledSlider
-            label="Interlineado"
+            label={t('settings.lineHeight')}
             value={settings.lineHeight}
             limits={LIMITS.lineHeight}
-            format={(value) => value.toFixed(2).replace('.', ',')}
+            format={(value) => formatDecimal(value, 2)}
             onChange={(lineHeight) => update({ lineHeight })}
           />
           <LabeledSlider
-            label="Alto del panel"
+            label={t('settings.panelHeight')}
             value={settings.panelHeight}
             limits={LIMITS.panelHeight}
             format={(value) => `${Math.round(value * 100)} %`}
             onChange={(panelHeight) => update({ panelHeight })}
           />
           <LabeledSlider
-            label="Fondo del panel"
+            label={t('settings.opacity')}
             value={settings.opacity}
             limits={LIMITS.opacity}
             format={(value) => `${Math.round(value * 100)} %`}
@@ -91,12 +92,8 @@ export function SettingsSheet({ visible, settings, update, onClose, onRewind }: 
 
           <View style={styles.switchRow}>
             <View style={styles.switchText}>
-              <Text style={styles.label}>Espejo en la cámara frontal</Text>
-              <Text style={styles.hint}>
-                Cambia lo que ves y lo que se graba, a la vez. Apagado, un texto que salga en
-                plano se lee del derecho. El guion es un rótulo encima, así que nunca se
-                voltea.
-              </Text>
+              <Text style={styles.label}>{t('settings.mirror')}</Text>
+              <Text style={styles.hint}>{t('settings.mirrorHint')}</Text>
             </View>
             <Switch
               value={settings.mirrorFront}

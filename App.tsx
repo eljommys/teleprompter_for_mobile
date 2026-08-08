@@ -17,6 +17,7 @@ import {
 } from 'react-native-vision-camera';
 
 import { ControlBar } from './components/ControlBar';
+import { t } from './lib/i18n';
 import { DebugPanel } from './components/DebugPanel';
 import { Prompter } from './components/Prompter';
 import { SettingsSheet } from './components/SettingsSheet';
@@ -164,7 +165,7 @@ function Studio() {
         ) : (
           <View style={styles.placeholder}>
             <Text style={styles.placeholderText}>
-              {cameraPermission.hasPermission ? 'Buscando cámara…' : 'Falta permiso de cámara'}
+              {cameraPermission.hasPermission ? t('camera.searching') : t('camera.noPermission')}
             </Text>
           </View>
         )}

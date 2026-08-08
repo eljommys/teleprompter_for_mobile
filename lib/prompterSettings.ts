@@ -6,6 +6,8 @@
  * sanitización, docHeight compartido): aquí solo hay un aparato.
  */
 
+import { t } from './i18n';
+
 export type PrompterSettings = {
   /** Guion completo. */
   text: string;
@@ -29,12 +31,7 @@ export type PrompterSettings = {
 };
 
 export const DEFAULT_SETTINGS: PrompterSettings = {
-  text: [
-    'Pega aquí tu guion desde los ajustes.',
-    '',
-    'Arrastra con el dedo para moverlo a mano.',
-    'Toca una vez para que avance solo, y otra para pararlo.',
-  ].join('\n'),
+  text: t('defaultScript'),
   fontSize: 30,
   speed: 30,
   lineHeight: 1.4,

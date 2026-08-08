@@ -3,6 +3,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 import type { CameraVideoOutput, Recorder } from 'react-native-vision-camera';
 
+import { t } from './i18n';
+
 export type RecorderState = {
   isRecording: boolean;
   /** Segundos grabados de la toma en curso. */
@@ -47,7 +49,7 @@ export function useRecorder(videoOutput: CameraVideoOutput): RecorderState {
       // verdad es `Asset.create`.
       await MediaLibrary.Asset.create(uri);
     } catch (error) {
-      Alert.alert('No se pudo guardar', String(error));
+      Alert.alert(t('recorder.saveFailed'), String(error));
     }
   }, []);
 
@@ -55,7 +57,7 @@ export function useRecorder(videoOutput: CameraVideoOutput): RecorderState {
     if (!permission?.granted) {
       const granted = await requestPermission();
       if (!granted.granted) {
-        Alert.alert('Sin permiso', 'Hace falta permiso para guardar en el Carrete.');
+        Alert.alert(t('recorder.noPermissionTitle'), t('recorder.noPermissionBody'));
         return;
       }
     }
@@ -72,7 +74,7 @@ export function useRecorder(videoOutput: CameraVideoOutput): RecorderState {
         recorder.current = null;
         setIsRecording(false);
         setDuration(0);
-        Alert.alert('Error grabando', error.message);
+        Alert.alert(t('recorder.recordingError'), error.message);
       },
     );
     setIsRecording(true);
@@ -91,7 +93,7 @@ export function useRecorder(videoOutput: CameraVideoOutput): RecorderState {
     action
       .catch((error: unknown) => {
         setIsRecording(false);
-        Alert.alert('Error', String(error));
+        Alert.alert(t('recorder.error'), String(error));
       })
       .finally(() => setIsBusy(false));
   }, [isBusy, isRecording, start, stop]);

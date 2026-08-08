@@ -1,0 +1,6 @@
+{
+  "NSCameraUsageDescription": "To record you while you read the script.",
+  "NSMicrophoneUsageDescription": "To record your voice along with the video.",
+  "NSPhotoLibraryAddUsageDescription": "To save your takes to your Photos.",
+  "NSPhotoLibraryUsageDescription": "To save your takes to your Photos."
+}
