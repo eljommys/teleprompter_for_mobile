@@ -82,13 +82,12 @@ dispositivo físico, que es el motivo más habitual de rechazo en apps de cámar
 
 ## App Store pública
 
-Sobre lo anterior, faltan cuatro cosas:
+Sobre lo anterior, faltan tres cosas:
 
 1. **Capturas** — ver `store/capturas.md`. Tienen que salir del iPhone.
-2. **URL de privacidad** — sube `store/privacidad.html` a tu dominio y pega la
-   dirección en App Store Connect.
-3. **URL de soporte** — una página con un correo de contacto basta.
-4. **La ficha** — nombre, subtítulo, descripción, palabras clave y las respuestas
+2. **Las dos URLs, privacidad y soporte** — las páginas ya están escritas en
+   `docs/`. Solo falta activar GitHub Pages una vez: `docs/LEEME.md`.
+3. **La ficha** — nombre, subtítulo, descripción, palabras clave y las respuestas
    de App Privacy, todo en `ficha-app-store.md`.
 
 Después, en App Store Connect, seleccionas la build de TestFlight que ya está

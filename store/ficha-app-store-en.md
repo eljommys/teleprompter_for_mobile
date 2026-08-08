@@ -132,11 +132,11 @@ española pasa sin problema, puedes añadirlos aquí después.
 | Marketing URL     | Opcional                                   |
 | Privacy Policy URL| **Decide** — ver abajo                     |
 
-La URL de privacidad es localizable y ahora mismo `store/privacidad.html` solo
-existe en español. Tienes dos salidas: apuntar la ficha inglesa a la misma página
-española, que es legal y está feo, o traducir el HTML y apuntar a
-`/prompter/privacy`. Como el documento entero se resume en «esta app no recopila
-nada», traducirlo es media hora.
+La URL de privacidad es localizable y ahora mismo las páginas de `docs/` solo
+existen en español. Tienes dos salidas: apuntar la ficha inglesa a las mismas
+páginas españolas, que es legal y está feo, o traducirlas a `docs/privacy.html` y
+`docs/en/index.html`. Como la política entera se resume en «esta app no recopila
+nada», traducir las dos es cosa de una hora.
 
 ---
 

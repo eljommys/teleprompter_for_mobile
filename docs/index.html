@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Soporte · Prompter</title>
+    <meta
+      name="description"
+      content="Ayuda y contacto de Prompter, el teleprompter con cámara para iPhone."
+    />
+    <style>
+      :root {
+        color-scheme: light dark;
+        --fg: #16161a;
+        --muted: #5c5c66;
+        --bg: #ffffff;
+        --rule: #e4e4e8;
+        --accent: #b58900;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --fg: #ececf1;
+          --muted: #9a9aa5;
+          --bg: #0b0b0c;
+          --rule: #26262b;
+          --accent: #ffd60a;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 48px 24px 96px;
+        background: var(--bg);
+        color: var(--fg);
+        font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+      main {
+        max-width: 42rem;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 1.9rem;
+        line-height: 1.2;
+        margin: 0 0 4px;
+        letter-spacing: -0.02em;
+      }
+      .updated {
+        color: var(--muted);
+        font-size: 0.875rem;
+        margin: 0 0 40px;
+      }
+      h2 {
+        font-size: 1.15rem;
+        margin: 40px 0 10px;
+        padding-top: 20px;
+        border-top: 1px solid var(--rule);
+        letter-spacing: -0.01em;
+      }
+      h3 {
+        font-size: 1rem;
+        margin: 24px 0 4px;
+      }
+      p,
+      li {
+        color: var(--fg);
+      }
+      ul {
+        padding-left: 1.25rem;
+      }
+      li {
+        margin: 6px 0;
+      }
+      .lead {
+        font-size: 1.0625rem;
+        border-left: 3px solid var(--accent);
+        padding-left: 16px;
+        margin: 0 0 8px;
+      }
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.9em;
+        background: var(--rule);
+        padding: 1px 5px;
+        border-radius: 4px;
+      }
+      a {
+        color: var(--accent);
+      }
+      .contacto {
+        margin: 32px 0 0;
+        padding: 20px 22px;
+        border: 1px solid var(--rule);
+        border-radius: 12px;
+      }
+      .contacto p {
+        margin: 0;
+      }
+      .contacto .correo {
+        font-size: 1.15rem;
+        font-weight: 600;
+      }
+      footer {
+        margin-top: 48px;
+        padding-top: 20px;
+        border-top: 1px solid var(--rule);
+        color: var(--muted);
+        font-size: 0.875rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Prompter · Soporte</h1>
+      <p class="updated">Teleprompter y cámara en la misma pantalla del iPhone</p>
+
+      <p class="lead">
+        Pegas tu guion, le das a grabar y lees. Puedes girar entre la cámara frontal y la trasera
+        sin que la grabación se corte: sale un único vídeo, con el audio continuo.
+      </p>
+
+      <div class="contacto">
+        <p>¿Un fallo, una duda o una idea?</p>
+        <p class="correo"><a href="mailto:jaime@rackslabs.com">jaime@rackslabs.com</a></p>
+        <p style="color: var(--muted); font-size: 0.9375rem; margin-top: 6px">
+          Contesto yo, no hay formulario ni ticket. Si es un fallo, dime tu modelo de iPhone y la
+          versión de iOS: casi todo lo raro pasa en la cámara, y la cámara cambia de un modelo a
+          otro.
+        </p>
+      </div>
+
+      <h2>Requisitos</h2>
+      <ul>
+        <li>iPhone con <strong>iOS 16.4</strong> o posterior.</li>
+        <li>
+          Está pensada para iPhone. En iPad no se ofrece: la app está bloqueada en vertical y las
+          lentes de las que depende el zoom no son las mismas.
+        </li>
+        <li>No necesita cuenta, ni registro, ni conexión a internet.</li>
+      </ul>
+
+      <h2>Preguntas frecuentes</h2>
+
+      <h3>No veo la imagen de la cámara</h3>
+      <p>
+        Falta el permiso. Ve a <em>Ajustes → Prompter</em> en tu iPhone y activa
+        <strong>Cámara</strong> y <strong>Micrófono</strong>. Si dijiste que no la primera vez, iOS
+        no vuelve a preguntar y hay que darlo desde ahí.
+      </p>
+
+      <h3>¿Dónde acaban mis vídeos?</h3>
+      <p>
+        En el Carrete, en cuanto paras la grabación. Para eso hace falta el permiso de
+        <em>Añadir a Fotos</em>, también en <em>Ajustes → Prompter</em>. Es un permiso de solo
+        escritura: la app no puede ver el resto de tus fotos.
+      </p>
+
+      <h3>Se me ha perdido el guion</h3>
+      <p>
+        El texto y los ajustes se guardan solos en el teléfono, así que sobreviven a cerrar la app.
+        Lo que no sobreviven es a desinstalarla: no hay copia en ninguna nube, porque la app no se
+        conecta a ninguna parte. Si el guion es importante, tenlo también donde lo escribiste.
+      </p>
+
+      <h3>Los botones de zoom no son los mismos que en mi iPhone</h3>
+      <p>
+        Los botones saltan a las lentes reales de tu modelo, y cada modelo tiene las suyas: un
+        iPhone sin teleobjetivo no enseña el 5×. Si crees que las paradas no cuadran con las de la
+        cámara del sistema, mantén pulsada la esquina superior izquierda para ver los datos crudos
+        de la cámara y mándamelos por correo con el modelo.
+      </p>
+
+      <h3>¿Se corta la grabación al girar de cámara?</h3>
+      <p>
+        No, ese es justo el motivo de la app. Si se te corta, es un fallo y quiero saberlo.
+      </p>
+
+      <h3>¿Hay suscripción o marca de agua?</h3>
+      <p>No. Ni suscripción, ni anuncios, ni marca de agua, ni límite de duración.</p>
+
+      <h2>Privacidad</h2>
+      <p>
+        La app no recoge ningún dato, y eso está explicado en detalle en la
+        <a href="privacidad.html">política de privacidad</a>.
+      </p>
+
+      <h2>Código</h2>
+      <p>
+        El código de la app es público:
+        <a href="https://github.com/eljommys/teleprompter_for_mobile"
+          >github.com/eljommys/teleprompter_for_mobile</a
+        >. Si prefieres reportar un fallo ahí, las
+        <a href="https://github.com/eljommys/teleprompter_for_mobile/issues">incidencias</a> están
+        abiertas.
+      </p>
+
+      <footer>Prompter · Racks Labs · <a href="privacidad.html">Privacidad</a></footer>
+    </main>
+  </body>
+</html>

@@ -86,8 +86,13 @@ Con esa respuesta la ficha muestra **«No se recopilan datos»**, que es la
 etiqueta más limpia que da Apple y un argumento de venta en sí misma.
 
 **Privacy Policy URL [bloquea]** — aquí mismo. Obligatoria aunque no recojas
-nada. `store/privacidad.html` está listo para subir tal cual; por ejemplo
-`https://rackslabs.com/prompter/privacidad`.
+nada:
+
+```
+https://eljommys.github.io/teleprompter_for_mobile/privacidad.html
+```
+
+La sirve GitHub Pages desde `docs/` del propio repositorio. Ver `docs/LEEME.md`.
 
 ---
 
@@ -166,13 +171,12 @@ La lista inglesa no las lleva, y ahí el motivo es otro: no ibas a rankear.
 
 | Campo          | Valor                                                     |
 | -------------- | --------------------------------------------------------- |
-| Support URL    | **[bloquea]** — pendiente, ver abajo                       |
+| Support URL    | `https://eljommys.github.io/teleprompter_for_mobile/`      |
 | Marketing URL  | Opcional, puedes dejarlo vacío                             |
 
-La de soporte tiene que responder cuando el revisor la abra. Vale una página con
-un correo de contacto y poco más — `https://rackslabs.com/prompter` — o el propio
-repositorio de GitHub si lo pones público. Lo que no vale es un enlace roto: es
-motivo de rechazo por la directriz 1.5.
+La de soporte tiene que responder cuando el revisor la abra: un enlace roto es
+motivo de rechazo por la directriz 1.5. La página está en `docs/index.html` y
+lleva contacto, requisitos y las preguntas frecuentes.
 
 ### Copyright
 
@@ -212,7 +216,7 @@ Al final de la misma pantalla.
 | ------------------- | ------------------------ |
 | First / Last Name   | Tu nombre                |
 | Phone Number        | Tu móvil con +34         |
-| Email               | `hello@rackslabs.com`    |
+| Email               | `jaime@rackslabs.com`    |
 | Sign-in required    | No                       |
 | Attachment          | Ninguno                  |
 
@@ -282,7 +286,7 @@ externas.
 > grabar y lee. Puedes girar entre la cámara frontal y la trasera sin que se
 > corte la grabación.
 
-**Feedback Email**: `hello@rackslabs.com`
+**Feedback Email**: `jaime@rackslabs.com`
 
 **What to Test**
 
@@ -309,8 +313,8 @@ Cada build de TestFlight **caduca a los 90 días**.
 
 Cinco cosas, y solo dos dependen de escribir algo:
 
-1. **Support URL** — una página con un correo. Es la que más se olvida.
-2. **Privacy Policy URL** — sube `store/privacidad.html` a tu dominio.
+1. **Support URL** — hecha, solo falta activar GitHub Pages (`docs/LEEME.md`).
+2. **Privacy Policy URL** — la misma activación, misma carpeta.
 3. **Capturas** — del iPhone, no del simulador.
 4. **El Name en App Store Connect** — casi seguro está con el autogenerado.
 5. **El icono** — decidir cuál y regenerar los tamaños.
