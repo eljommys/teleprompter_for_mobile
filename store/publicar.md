@@ -8,6 +8,18 @@ Todo lo que sigue asume la cuenta de desarrollador de pago que ya tienes
 
 ---
 
+## Dónde estamos (8 ago 2026)
+
+La primera etapa está hecha. La build **1.0.0 (5)**, perfil `production`, se
+compiló y se subió a App Store Connect el 7 de agosto, y el registro de la app
+existe con el ID `6799003999`. O sea: TestFlight ya funciona, solo hay que
+repartir el enlace.
+
+Para la App Store pública faltan las cinco cosas de la última sección de
+`ficha-app-store.md`. Ninguna es código.
+
+---
+
 ## Antes de la primera build
 
 **1. Confirma el nombre del bundle.** `com.rackslabs.prompter` ya está registrado
