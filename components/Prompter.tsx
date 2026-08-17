@@ -28,8 +28,16 @@ type Props = {
  * hilo de UI con `scrollTo`, así que no da tirones mientras se graba.
  */
 export function Prompter({ settings, scroll, height, onTapDiscovered }: Props) {
-  const { playing, travel, position, listRef, setViewportHeight, setContentHeight, toggle } =
-    scroll;
+  const {
+    playing,
+    travel,
+    position,
+    listRef,
+    setViewportHeight,
+    setContentHeight,
+    toggle,
+    touchStartedWhilePlaying,
+  } = scroll;
   const padding = readLinePaddings(height, settings.readLine);
 
   // Mientras arrastras mandas tú; el resto del tiempo, si está en marcha, manda
@@ -37,6 +45,10 @@ export function Prompter({ settings, scroll, height, onTapDiscovered }: Props) {
   // que no se pisan.
   const onScroll = useAnimatedScrollHandler({
     onBeginDrag: () => {
+      // Esto salta también al posar el dedo sin moverlo, porque iOS abre un
+      // arrastre para frenar el desplazamiento. Se apunta que venía en marcha
+      // para que un toque limpio pueda pausarlo en vez de reanudarlo.
+      touchStartedWhilePlaying.value = playing.value;
       playing.value = false;
     },
     onScroll: (event) => {

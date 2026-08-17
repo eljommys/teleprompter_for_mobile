@@ -21,6 +21,12 @@ export type ScriptScroll = {
   travel: DerivedValue<number>;
   /** ¿Está avanzando solo? */
   playing: SharedValue<boolean>;
+  /**
+   * ¿El dedo aterrizó sobre un guion que ya estaba avanzando?
+   *
+   * Lo escribe `onBeginDrag` y lo consume `toggle`. Ver el porqué allí.
+   */
+  touchStartedWhilePlaying: SharedValue<boolean>;
   /** Ref del `ScrollView` que se empuja desde el hilo de UI. */
   listRef: AnimatedRef<ScrollView>;
   /** Alto del hueco visible. */
@@ -53,6 +59,7 @@ export function useScriptScroll(speed: number, fontSize: number): ScriptScroll {
   const listRef = useAnimatedRef<ScrollView>();
   const position = useSharedValue(0);
   const playing = useSharedValue(false);
+  const touchStartedWhilePlaying = useSharedValue(false);
   const viewportHeight = useSharedValue(0);
   const contentHeight = useSharedValue(0);
 
@@ -131,15 +138,23 @@ export function useScriptScroll(speed: number, fontSize: number): ScriptScroll {
 
   /**
    * Se llama desde JS, no desde un worklet: el toque llega por el sistema de
-   * respuesta táctil de React Native y no por un gesto del hilo de UI. Escribir
-   * un shared value desde JS es legal y el bucle lo lee en el fotograma
-   * siguiente.
+   * respuesta táctil de React Native y no por un gesto del hilo de UI.
+   *
+   * No basta con invertir `playing`. Al posar el dedo sobre un guion que está
+   * avanzando, iOS abre un arrastre para frenar el desplazamiento aunque no
+   * muevas el dedo, y ese arrastre ya ha puesto `playing` a `false` cuando
+   * llega el toque. Invertir ahí lo volvería a arrancar: el guion no se
+   * pararía nunca con un toque, solo arrastrando. Por eso se mira también si el
+   * dedo aterrizó sobre un guion en marcha, y esa marca se consume aquí para
+   * que un toque posterior sin arrastre no la herede.
    */
   const toggle = useCallback(() => {
+    const wasPlaying = touchStartedWhilePlaying.value || playing.value;
+    touchStartedWhilePlaying.value = false;
     // Al final del guion, un toque lo rebobina en vez de no hacer nada.
     if (position.value >= 1) position.value = 0;
-    playing.value = !playing.value;
-  }, [position, playing]);
+    playing.value = !wasPlaying;
+  }, [position, playing, touchStartedWhilePlaying]);
 
   const rewind = useCallback(() => {
     position.value = 0;
@@ -152,6 +167,7 @@ export function useScriptScroll(speed: number, fontSize: number): ScriptScroll {
       position,
       travel,
       playing,
+      touchStartedWhilePlaying,
       listRef,
       setViewportHeight,
       setContentHeight,
@@ -164,6 +180,7 @@ export function useScriptScroll(speed: number, fontSize: number): ScriptScroll {
       position,
       travel,
       playing,
+      touchStartedWhilePlaying,
       listRef,
       setViewportHeight,
       setContentHeight,
