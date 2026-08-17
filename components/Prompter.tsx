@@ -1,6 +1,5 @@
-import { StyleSheet, Text, View } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { runOnJS, useAnimatedScrollHandler } from 'react-native-reanimated';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, { useAnimatedScrollHandler } from 'react-native-reanimated';
 
 import { t } from '../lib/i18n';
 import { readLinePaddings, type PrompterSettings } from '../lib/prompterSettings';
@@ -29,7 +28,8 @@ type Props = {
  * hilo de UI con `scrollTo`, así que no da tirones mientras se graba.
  */
 export function Prompter({ settings, scroll, height, onTapDiscovered }: Props) {
-  const { playing, travel, position, listRef, setViewportHeight, setContentHeight } = scroll;
+  const { playing, travel, position, listRef, setViewportHeight, setContentHeight, toggle } =
+    scroll;
   const padding = readLinePaddings(height, settings.readLine);
 
   // Mientras arrastras mandas tú; el resto del tiempo, si está en marcha, manda
@@ -49,20 +49,14 @@ export function Prompter({ settings, scroll, height, onTapDiscovered }: Props) {
   // Un toque alterna el avance. `Tap` no reclama el gesto hasta que se confirma
   // que fue corto y sin movimiento, así que el desplazamiento nativo del
   // `ScrollView` sigue funcionando por debajo.
-  const tap = Gesture.Tap().onEnd((_event, success) => {
-    if (!success) return;
-    // Al final del guion, un toque lo rebobina en vez de no hacer nada.
-    if (position.value >= 1) position.value = 0;
-    playing.value = !playing.value;
-    // El gesto vive en el hilo de UI; guardar el ajuste es cosa de JS. Solo se
-    // cruza una vez en la vida de la instalación.
-    if (!settings.tapHintSeen) runOnJS(onTapDiscovered)();
-  });
+  const handlePress = () => {
+    toggle();
+    if (!settings.tapHintSeen) onTapDiscovered();
+  };
 
   const backgroundColor = `rgba(0, 0, 0, ${settings.opacity})`;
 
   return (
-    <GestureDetector gesture={tap}>
       <View
         style={[styles.viewport, { height, backgroundColor }]}
         onLayout={(event) => setViewportHeight(event.nativeEvent.layout.height)}>
@@ -73,22 +67,31 @@ export function Prompter({ settings, scroll, height, onTapDiscovered }: Props) {
           showsVerticalScrollIndicator={false}
           // El avance automático mueve el desplazamiento por su cuenta; el
           // frenado por inercia del sistema pelearía con él.
-          decelerationRate="fast"
-          onContentSizeChange={(_width, contentHeight) => setContentHeight(contentHeight)}
-          contentContainerStyle={{
-            paddingTop: padding.top,
-            paddingBottom: padding.bottom,
-          }}>
-          <Text
-            style={[
-              styles.text,
-              {
-                fontSize: settings.fontSize,
-                lineHeight: settings.fontSize * settings.lineHeight,
-              },
-            ]}>
-            {settings.text}
-          </Text>
+          decelerationRate="fast">
+          {/* Los rellenos van aquí y no en `contentContainerStyle` para que el
+              área pulsable cubra también el aire de antes y después del guion:
+              con el texto al principio, media banda está en blanco y un toque
+              ahí tiene que valer igual. La suma sigue siendo el alto de la
+              banda, que es lo que mantiene la invariante del recorrido. */}
+          {/* El alto del contenido se mide aquí y no con `onContentSizeChange`
+              del `ScrollView`: ese evento no llegaba, el recorrido se quedaba en
+              cero y con recorrido cero el bucle de avance se sale sin mover
+              nada. Un `onLayout` sobre el propio contenido sí llega siempre. */}
+          <Pressable
+            onPress={handlePress}
+            onLayout={(event) => setContentHeight(event.nativeEvent.layout.height)}
+            style={{ paddingTop: padding.top, paddingBottom: padding.bottom }}>
+            <Text
+              style={[
+                styles.text,
+                {
+                  fontSize: settings.fontSize,
+                  lineHeight: settings.fontSize * settings.lineHeight,
+                },
+              ]}>
+              {settings.text}
+            </Text>
+          </Pressable>
         </Animated.ScrollView>
 
         {/* Marca de la línea de lectura: dónde apoyar la vista. */}
@@ -103,7 +106,6 @@ export function Prompter({ settings, scroll, height, onTapDiscovered }: Props) {
           </View>
         )}
       </View>
-    </GestureDetector>
   );
 }
 

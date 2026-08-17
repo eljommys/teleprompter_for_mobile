@@ -2,10 +2,13 @@ import { useCallback, useEffect, useMemo } from 'react';
 import type { ScrollView } from 'react-native';
 import {
   scrollTo,
+  useAnimatedReaction,
   useAnimatedRef,
+  useDerivedValue,
   useFrameCallback,
   useSharedValue,
   type AnimatedRef,
+  type DerivedValue,
   type SharedValue,
 } from 'react-native-reanimated';
 
@@ -14,16 +17,21 @@ import { clamp, scrollRate } from './prompterSettings';
 export type ScriptScroll = {
   /** Posición normalizada 0..1. Nunca en píxeles: ver nota abajo. */
   position: SharedValue<number>;
-  /** Recorrido medido en px de esta pantalla. */
-  travel: SharedValue<number>;
+  /** Recorrido en px de esta pantalla. Derivado de los dos altos. */
+  travel: DerivedValue<number>;
   /** ¿Está avanzando solo? */
   playing: SharedValue<boolean>;
   /** Ref del `ScrollView` que se empuja desde el hilo de UI. */
   listRef: AnimatedRef<ScrollView>;
-  /** Alto del hueco visible, para calcular los rellenos 40/60. */
+  /** Alto del hueco visible. */
   setViewportHeight: (height: number) => void;
   /** Alto total del contenido, rellenos incluidos. */
   setContentHeight: (height: number) => void;
+  /** Los dos crudos, solo para el panel de depuración. */
+  viewportHeight: SharedValue<number>;
+  contentHeight: SharedValue<number>;
+  /** Arrancar o parar el avance automático. */
+  toggle: () => void;
   /** Volver al principio del guion. */
   rewind: () => void;
 };
@@ -44,10 +52,24 @@ export type ScriptScroll = {
 export function useScriptScroll(speed: number, fontSize: number): ScriptScroll {
   const listRef = useAnimatedRef<ScrollView>();
   const position = useSharedValue(0);
-  const travel = useSharedValue(0);
   const playing = useSharedValue(false);
   const viewportHeight = useSharedValue(0);
   const contentHeight = useSharedValue(0);
+
+  /**
+   * El recorrido se deriva; no se calcula a mano al recibir cada medida.
+   *
+   * Antes era una función que los dos `onLayout` llamaban tras escribir su
+   * valor, y se quedaba en cero: dependía de en qué orden llegaran las medidas y
+   * de un guardado que se saltaba la asignación. Derivado no puede
+   * desincronizarse — vale lo que valgan sus entradas, las escriba quien las
+   * escriba y en el orden que sea.
+   *
+   * Va aquí arriba y no junto a los `set*` por una razón que no se ve: el bucle
+   * de fotogramas es un worklet y captura su cierre al crearse, así que `travel`
+   * tiene que existir antes.
+   */
+  const travel = useDerivedValue(() => Math.max(0, contentHeight.value - viewportHeight.value));
 
   // El bucle lee siempre el último valor de los ajustes sin reiniciarse cada
   // vez que se mueve un slider. Se copian en un efecto y no durante el render:
@@ -79,32 +101,45 @@ export function useScriptScroll(speed: number, fontSize: number): ScriptScroll {
     if (next >= 1) playing.value = false;
   }, true);
 
-  const measure = useCallback(() => {
-    const next = Math.max(0, contentHeight.value - viewportHeight.value);
-    if (Math.abs(next - travel.value) < 1) return;
-    travel.value = next;
-    // El `ScrollView` conserva su desplazamiento en píxeles, pero el recorrido
-    // acaba de cambiar —has tocado el cuerpo de letra o el alto del panel—, así
-    // que esos píxeles ya no apuntan al mismo sitio del guion. Se recoloca a
-    // partir de la posición normalizada, que es la que sí significa lo mismo.
-    listRef.current?.scrollTo({ y: position.value * next, animated: false });
-  }, [travel, contentHeight, viewportHeight, listRef, position]);
-
   const setViewportHeight = useCallback(
     (height: number) => {
       viewportHeight.value = height;
-      measure();
     },
-    [viewportHeight, measure],
+    [viewportHeight],
   );
 
   const setContentHeight = useCallback(
     (height: number) => {
       contentHeight.value = height;
-      measure();
     },
-    [contentHeight, measure],
+    [contentHeight],
   );
+
+  /**
+   * El `ScrollView` conserva su desplazamiento en píxeles, pero cuando el
+   * recorrido cambia —has tocado el cuerpo de letra o el alto del panel— esos
+   * píxeles ya no apuntan al mismo sitio del guion. Se recoloca a partir de la
+   * posición normalizada, que es la que sí significa lo mismo.
+   */
+  useAnimatedReaction(
+    () => travel.value,
+    (next, previous) => {
+      if (next <= 0 || next === previous || previous == null) return;
+      scrollTo(listRef, 0, position.value * next, false);
+    },
+  );
+
+  /**
+   * Se llama desde JS, no desde un worklet: el toque llega por el sistema de
+   * respuesta táctil de React Native y no por un gesto del hilo de UI. Escribir
+   * un shared value desde JS es legal y el bucle lo lee en el fotograma
+   * siguiente.
+   */
+  const toggle = useCallback(() => {
+    // Al final del guion, un toque lo rebobina en vez de no hacer nada.
+    if (position.value >= 1) position.value = 0;
+    playing.value = !playing.value;
+  }, [position, playing]);
 
   const rewind = useCallback(() => {
     position.value = 0;
@@ -120,8 +155,22 @@ export function useScriptScroll(speed: number, fontSize: number): ScriptScroll {
       listRef,
       setViewportHeight,
       setContentHeight,
+      viewportHeight,
+      contentHeight,
+      toggle,
       rewind,
     }),
-    [position, travel, playing, listRef, setViewportHeight, setContentHeight, rewind],
+    [
+      position,
+      travel,
+      playing,
+      listRef,
+      setViewportHeight,
+      setContentHeight,
+      viewportHeight,
+      contentHeight,
+      toggle,
+      rewind,
+    ],
   );
 }

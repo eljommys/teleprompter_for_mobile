@@ -12,11 +12,17 @@ import {
 } from 'react-native';
 
 import { formatDecimal, t } from '../lib/i18n';
-import { LIMITS, STABILIZATION_MODES, type PrompterSettings } from '../lib/prompterSettings';
+import {
+  LIMITS,
+  type PrompterSettings,
+  type StabilizationChoice,
+} from '../lib/prompterSettings';
 
 type Props = {
   visible: boolean;
   settings: PrompterSettings;
+  /** Modos que admite la cámara activa; los demás ni se enseñan. */
+  availableStabilization: readonly StabilizationChoice[];
   update: (patch: Partial<PrompterSettings>) => void;
   onClose: () => void;
   onRewind: () => void;
@@ -24,7 +30,14 @@ type Props = {
 
 const ACCENT = '#ffd60a';
 
-export function SettingsSheet({ visible, settings, update, onClose, onRewind }: Props) {
+export function SettingsSheet({
+  visible,
+  settings,
+  availableStabilization,
+  update,
+  onClose,
+  onRewind,
+}: Props) {
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <KeyboardAvoidingView behavior="padding" style={styles.container}>
@@ -83,6 +96,20 @@ export function SettingsSheet({ visible, settings, update, onClose, onRewind }: 
             onChange={(panelHeight) => update({ panelHeight })}
           />
           <LabeledSlider
+            label={t('settings.panelTop')}
+            hint={t('settings.panelTopHint')}
+            value={settings.panelTop}
+            limits={LIMITS.panelTop}
+            format={(value) =>
+              value <= 0.02
+                ? t('settings.panelTop.top')
+                : value >= 0.98
+                  ? t('settings.panelTop.bottom')
+                  : `${Math.round(value * 100)} %`
+            }
+            onChange={(panelTop) => update({ panelTop })}
+          />
+          <LabeledSlider
             label={t('settings.readLine')}
             hint={t('settings.readLineHint')}
             value={settings.readLine}
@@ -103,7 +130,7 @@ export function SettingsSheet({ visible, settings, update, onClose, onRewind }: 
           <View style={styles.sliderRow}>
             <Text style={styles.label}>{t('settings.stabilization')}</Text>
             <View style={styles.segmented}>
-              {STABILIZATION_MODES.map((mode) => {
+              {availableStabilization.map((mode) => {
                 const active = settings.stabilization === mode;
                 return (
                   <Pressable

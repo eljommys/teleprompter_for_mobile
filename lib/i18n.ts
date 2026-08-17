@@ -18,10 +18,16 @@ const es = {
   'settings.speed': 'Velocidad',
   'settings.lineHeight': 'Interlineado',
   'settings.panelHeight': 'Alto del panel',
+  'settings.panelTop': 'Posición en pantalla',
+  'settings.panelTopHint':
+    'Sube toda la caja del guion. Cuanto más arriba, más cerca del objetivo de la ' +
+    'cámara frontal y más parece que miras a cámara.',
+  'settings.panelTop.top': 'Arriba',
+  'settings.panelTop.bottom': 'Abajo',
   'settings.readLine': 'Línea de lectura',
   'settings.readLineHint':
-    'Dónde cae la línea por la que vas leyendo. Cuanto más arriba, más cerca del ' +
-    'objetivo de la cámara frontal y más parece que miras a cámara.',
+    'Dónde caes dentro de la caja, o sea cuánto texto ves por delante. No mueve la ' +
+    'caja: para eso está la posición en pantalla.',
   'settings.opacity': 'Fondo del panel',
   'settings.section.camera': 'Cámara',
   'settings.stabilization': 'Estabilización',
@@ -66,10 +72,16 @@ const en: Record<TextKey, string> = {
   'settings.speed': 'Speed',
   'settings.lineHeight': 'Line spacing',
   'settings.panelHeight': 'Panel height',
+  'settings.panelTop': 'Position on screen',
+  'settings.panelTopHint':
+    'Moves the whole script box. The higher it is, the closer to the front camera ' +
+    'lens, and the more it looks like you are talking to camera.',
+  'settings.panelTop.top': 'Top',
+  'settings.panelTop.bottom': 'Bottom',
   'settings.readLine': 'Reading line',
   'settings.readLineHint':
-    'Where the line you read from sits. The higher it is, the closer to the front ' +
-    'camera lens, and the more it looks like you are talking to camera.',
+    'Where you sit inside the box — how much text you see ahead. It does not move ' +
+    'the box: that is what position on screen is for.',
   'settings.opacity': 'Panel background',
   'settings.section.camera': 'Camera',
   'settings.stabilization': 'Stabilization',

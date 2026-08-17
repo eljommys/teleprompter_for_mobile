@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
-import type { CameraDevice } from 'react-native-vision-camera';
+import type { CameraDevice, CameraSessionConfig } from 'react-native-vision-camera';
 
 import type { ScriptScroll } from '../lib/useScriptScroll';
 import { toDisplay, type ZoomScale } from '../lib/zoom';
@@ -9,6 +9,8 @@ type Props = {
   device: CameraDevice | undefined;
   scale: ZoomScale | null;
   scroll: ScriptScroll;
+  /** Lo que la sesión eligió tras negociar las restricciones. */
+  sessionConfig: CameraSessionConfig | null;
 };
 
 /**
@@ -18,17 +20,25 @@ type Props = {
  * `zoomLensSwitchFactors` y `device.minZoom` vienen en escala cruda o visible
  * (ver `lib/zoom.ts`). Con esto delante, comprobarlo lleva medio minuto.
  */
-export function DebugPanel({ device, scale, scroll }: Props) {
+export function DebugPanel({ device, scale, scroll, sessionConfig }: Props) {
   // Los valores del guion viven en el hilo de UI. Cruzar a JS en cada fotograma
   // solo para pintar un número sería absurdo, así que se muestrean despacio y
   // solo mientras este panel está abierto.
-  const [live, setLive] = useState({ travel: 0, position: 0, playing: false });
+  const [live, setLive] = useState({
+    travel: 0,
+    position: 0,
+    playing: false,
+    viewport: 0,
+    content: 0,
+  });
   useEffect(() => {
     const id = setInterval(() => {
       setLive({
         travel: scroll.travel.value,
         position: scroll.position.value,
         playing: scroll.playing.value,
+        viewport: scroll.viewportHeight.value,
+        content: scroll.contentHeight.value,
       });
     }, 400);
     return () => clearInterval(id);
@@ -36,6 +46,10 @@ export function DebugPanel({ device, scale, scroll }: Props) {
 
   const lines: string[] = [];
 
+  // El recorrido sale de restar estos dos. Si es cero, el bucle de avance no
+  // mueve nada por muchas veces que toques el guion.
+  lines.push(`hueco px        ${live.viewport.toFixed(1)}`);
+  lines.push(`contenido px    ${live.content.toFixed(1)}`);
   lines.push(`recorrido px    ${live.travel.toFixed(1)}`);
   lines.push(`posición 0..1   ${live.position.toFixed(4)}`);
   lines.push(`avanzando       ${live.playing}`);
@@ -51,7 +65,22 @@ export function DebugPanel({ device, scale, scroll }: Props) {
     lines.push(`device.minZoom  ${device.minZoom}`);
     lines.push(`device.maxZoom  ${device.maxZoom}`);
     lines.push(`switchFactors   [${device.zoomLensSwitchFactors.join(', ')}]`);
+    lines.push(
+      `estab. soportada ${(['standard', 'cinematic', 'cinematic-extended'] as const)
+        .filter((mode) => device.supportsVideoStabilizationMode(mode))
+        .join(', ') || '—'}`,
+    );
   }
+
+  // Lo pedido y lo concedido no tienen por qué coincidir: la sesión negocia el
+  // modo con la resolución, los FPS y el resto de salidas. Si aquí sale otra
+  // cosa de la que pusiste en los ajustes, es que la cámara no puede darla.
+  lines.push(
+    `estab. vídeo    ${sessionConfig?.selectedVideoStabilizationMode ?? '(sin sesión)'}`,
+  );
+  lines.push(
+    `estab. previa   ${sessionConfig?.selectedPreviewStabilizationMode ?? '(sin sesión)'}`,
+  );
 
   if (scale == null) {
     lines.push('escala          (aún sin controlador)');

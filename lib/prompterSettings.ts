@@ -24,9 +24,16 @@ export type PrompterSettings = {
   /** Alto de la banda del guion, en fracción del alto de la pantalla. */
   panelHeight: number;
   /**
+   * Dónde se coloca la banda entera en la pantalla: 0 la pega arriba del todo,
+   * 1 la baja hasta los controles. Es lo que de verdad te acerca al objetivo de
+   * la cámara frontal, porque mueve la caja, no lo que hay dentro.
+   */
+  panelTop: number;
+  /**
    * Dónde cae la línea de lectura dentro de la banda, en fracción de su alto.
-   * Subirla acerca la vista al objetivo de la cámara frontal, que es lo que
-   * hace que parezca que miras a cámara y no un poco por debajo.
+   * Regula cuánto texto ves por delante de lo que estás leyendo; no mueve la
+   * banda —para eso está `panelTop`—, porque el texto y la línea se desplazan
+   * juntos y la frase que lees se queda donde estaba.
    */
   readLine: number;
   /**
@@ -37,7 +44,7 @@ export type PrompterSettings = {
    */
   mirrorFront: boolean;
   /** Estabilización de vídeo. Ver `STABILIZATION_MODES`. */
-  stabilization: TargetStabilizationMode;
+  stabilization: StabilizationChoice;
   /** ¿Ya sabe el usuario que un toque en el guion lo pone en marcha? */
   tapHintSeen: boolean;
 };
@@ -58,6 +65,9 @@ export const STABILIZATION_MODES = [
   'cinematic-extended',
 ] as const satisfies readonly TargetStabilizationMode[];
 
+/** Uno de los modos que ofrece la app, que no son todos los de VisionCamera. */
+export type StabilizationChoice = (typeof STABILIZATION_MODES)[number];
+
 export const DEFAULT_SETTINGS: PrompterSettings = {
   text: t('defaultScript'),
   fontSize: 30,
@@ -65,6 +75,7 @@ export const DEFAULT_SETTINGS: PrompterSettings = {
   lineHeight: 1.4,
   opacity: 0.45,
   panelHeight: 0.42,
+  panelTop: 0.5,
   readLine: 0.4,
   mirrorFront: true,
   // Sin `constraints` la sesión no pedía estabilización ninguna, y se notaba.
@@ -79,6 +90,7 @@ export const LIMITS = {
   lineHeight: { min: 1, max: 2.2, step: 0.05 },
   opacity: { min: 0, max: 0.9, step: 0.05 },
   panelHeight: { min: 0.2, max: 0.75, step: 0.01 },
+  panelTop: { min: 0, max: 1, step: 0.01 },
   // El tope de arriba no es 0: con la línea pegada al borde no queda sitio
   // para leer la frase siguiente, que es justo para lo que sirve un
   // teleprompter. El de abajo deja el texto por encima de la mitad.

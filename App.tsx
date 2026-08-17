@@ -13,6 +13,7 @@ import {
   useMicrophonePermission,
   useVideoOutput,
   type CameraRef,
+  type CameraSessionConfig,
   type TargetCameraPosition,
 } from 'react-native-vision-camera';
 
@@ -25,6 +26,7 @@ import { ZoomControls } from './components/ZoomControls';
 import { useRecorder } from './lib/useRecorder';
 import { useScriptScroll } from './lib/useScriptScroll';
 import { useSettings } from './lib/useSettings';
+import { STABILIZATION_MODES } from './lib/prompterSettings';
 import { buildZoomScale, clampZoom, type ZoomScale } from './lib/zoom';
 
 /**
@@ -86,12 +88,41 @@ function Studio() {
     setAppliedStabilization(settings.stabilization);
   }, [isRecording, settings.stabilization]);
 
-  // Memorizado por valor: un array nuevo en cada render sería una sesión nueva
-  // en cada render.
+  /**
+   * Memorizado por valor: un array nuevo en cada render sería una sesión nueva
+   * en cada render.
+   *
+   * Van las dos restricciones, y no solo la de vídeo, porque
+   * `videoStabilizationMode` solo toca el fichero grabado. Con ella sola el
+   * ajuste parece no hacer nada: la vista previa se ve exactamente igual y solo
+   * notarías la diferencia reproduciendo la toma después.
+   */
   const constraints = useMemo(
-    () => [{ videoStabilizationMode: appliedStabilization }],
+    () => [
+      { videoStabilizationMode: appliedStabilization },
+      { previewStabilizationMode: appliedStabilization },
+    ],
     [appliedStabilization],
   );
+
+  /**
+   * Los modos que este iPhone admite de verdad.
+   *
+   * Si se ofrece uno que la cámara no soporta, la negociación de restricciones
+   * cae a otro sin decir nada y el resultado es un ajuste que aparenta estar
+   * puesto sin estarlo.
+   */
+  const availableStabilization = useMemo(
+    () =>
+      STABILIZATION_MODES.filter(
+        (mode) => mode === 'off' || (device?.supportsVideoStabilizationMode(mode) ?? false),
+      ),
+    [device],
+  );
+
+  // Lo que la sesión ha elegido de verdad tras negociar. Solo para el panel de
+  // depuración: es la única forma de comprobar que el ajuste llega a la cámara.
+  const [sessionConfig, setSessionConfig] = useState<CameraSessionConfig | null>(null);
 
   // Un único zoom vivo (el que consume la cámara) más la memoria de cada
   // cámara, para que volver de la frontal te devuelva el encuadre de antes.
@@ -157,6 +188,19 @@ function Studio() {
   }, [facing, zoom]);
 
   const panelHeight = Math.round(screenHeight * settings.panelHeight);
+
+  /**
+   * Dónde se coloca la banda del guion.
+   *
+   * El hueco libre se mide contra el bloque de controles de abajo —medido, no
+   * estimado— y contra el área segura de arriba, así que la banda nunca se mete
+   * debajo de la isla dinámica ni tapa el botón de grabar. Con `panelTop` a 0 la
+   * banda queda lo más cerca posible del objetivo de la cámara frontal, que es
+   * para lo que existe este ajuste.
+   */
+  const [controlsHeight, setControlsHeight] = useState(0);
+  const bandTop =
+    insets.top + Math.max(0, screenHeight - insets.top - controlsHeight - panelHeight) * settings.panelTop;
   // El guion no depende de la cámara. Si falta el permiso o no hay dispositivo,
   // el fondo se queda negro pero se sigue pudiendo leer y ensayar.
   const ready = loaded;
@@ -183,6 +227,7 @@ function Studio() {
             resizeMode="cover"
             onStarted={syncZoomScale}
             onConfigured={syncZoomScale}
+            onSessionConfigSelected={setSessionConfig}
           />
         ) : (
           <View style={styles.placeholder}>
@@ -192,7 +237,7 @@ function Studio() {
           </View>
         )}
 
-        <View style={styles.band} pointerEvents="box-none">
+        <View style={[styles.band, { top: bandTop }]} pointerEvents="box-none">
           {ready ? (
             <Prompter
               settings={settings}
@@ -205,6 +250,7 @@ function Studio() {
 
         <View
           style={[styles.bottom, { paddingBottom: insets.bottom + 14 }]}
+          onLayout={(event) => setControlsHeight(event.nativeEvent.layout.height)}
           pointerEvents="box-none">
           <ZoomControls
             scale={scale}
@@ -231,11 +277,14 @@ function Studio() {
           onLongPress={() => setShowDebug((current) => !current)}
           delayLongPress={700}
         />
-        {showDebug ? <DebugPanel device={device} scale={scale} scroll={scroll} /> : null}
+        {showDebug ? (
+          <DebugPanel device={device} scale={scale} scroll={scroll} sessionConfig={sessionConfig} />
+        ) : null}
 
         <SettingsSheet
           visible={showSettings}
           settings={settings}
+          availableStabilization={availableStabilization}
           update={update}
           onClose={() => setShowSettings(false)}
           onRewind={scroll.rewind}
@@ -274,11 +323,8 @@ const styles = StyleSheet.create({
   },
   band: {
     position: 'absolute',
-    top: 0,
     left: 0,
     right: 0,
-    bottom: 0,
-    justifyContent: 'center',
   },
   bottom: {
     position: 'absolute',
