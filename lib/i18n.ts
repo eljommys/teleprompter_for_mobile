@@ -18,7 +18,20 @@ const es = {
   'settings.speed': 'Velocidad',
   'settings.lineHeight': 'Interlineado',
   'settings.panelHeight': 'Alto del panel',
+  'settings.readLine': 'Línea de lectura',
+  'settings.readLineHint':
+    'Dónde cae la línea por la que vas leyendo. Cuanto más arriba, más cerca del ' +
+    'objetivo de la cámara frontal y más parece que miras a cámara.',
   'settings.opacity': 'Fondo del panel',
+  'settings.section.camera': 'Cámara',
+  'settings.stabilization': 'Estabilización',
+  'settings.stabilization.off': 'Ninguna',
+  'settings.stabilization.standard': 'Estándar',
+  'settings.stabilization.cinematic': 'Cine',
+  'settings.stabilization.cinematic-extended': 'Máxima',
+  'settings.stabilizationHint':
+    'Cuanto más estabiliza, más recorta el encuadre. Si estás grabando, el cambio ' +
+    'entra al parar: cambiarla en caliente cortaría la toma.',
   'settings.mirror': 'Espejo en la cámara frontal',
   'settings.mirrorHint':
     'Cambia lo que ves y lo que se graba, a la vez. Apagado, un texto que salga en ' +
@@ -27,6 +40,7 @@ const es = {
   'controls.record': 'Grabar',
   'controls.stop': 'Parar de grabar',
   'controls.flip': 'Cambiar de cámara',
+  'prompter.tapHint': 'Toca el guion para que avance solo',
   'camera.searching': 'Buscando cámara…',
   'camera.noPermission': 'Falta permiso de cámara',
   'recorder.saveFailed': 'No se pudo guardar',
@@ -52,7 +66,20 @@ const en: Record<TextKey, string> = {
   'settings.speed': 'Speed',
   'settings.lineHeight': 'Line spacing',
   'settings.panelHeight': 'Panel height',
+  'settings.readLine': 'Reading line',
+  'settings.readLineHint':
+    'Where the line you read from sits. The higher it is, the closer to the front ' +
+    'camera lens, and the more it looks like you are talking to camera.',
   'settings.opacity': 'Panel background',
+  'settings.section.camera': 'Camera',
+  'settings.stabilization': 'Stabilization',
+  'settings.stabilization.off': 'None',
+  'settings.stabilization.standard': 'Standard',
+  'settings.stabilization.cinematic': 'Cinematic',
+  'settings.stabilization.cinematic-extended': 'Maximum',
+  'settings.stabilizationHint':
+    'The more it stabilizes, the more it crops the frame. While recording, the change ' +
+    'lands when you stop: switching mid-take would break the recording.',
   'settings.mirror': 'Mirror front camera',
   'settings.mirrorHint':
     'Flips what you see and what gets recorded, together. When off, any text in the ' +
@@ -61,6 +88,7 @@ const en: Record<TextKey, string> = {
   'controls.record': 'Record',
   'controls.stop': 'Stop recording',
   'controls.flip': 'Switch camera',
+  'prompter.tapHint': 'Tap the script to scroll it',
   'camera.searching': 'Looking for the camera…',
   'camera.noPermission': 'Camera permission needed',
   'recorder.saveFailed': 'Couldn’t save',

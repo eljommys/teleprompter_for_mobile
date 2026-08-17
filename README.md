@@ -17,6 +17,9 @@ un solo aparato.
 - Zoom por lentes reales en la trasera (0,5× / 1× / 3×, los que tenga tu modelo)
   y zoom digital en la frontal. Pellizca en cualquier parte fuera de la banda.
 - Al parar, la toma va directa a tu Carrete.
+- **La línea de lectura se mueve**: subirla te acerca al objetivo de la cámara
+  frontal, que es lo que hace que parezca que miras a cámara.
+- Estabilización de vídeo elegible, de ninguna a máxima.
 - Texto, tamaño de letra, velocidad, interlineado, alto y opacidad del panel:
   todo ajustable, y se queda guardado.
 

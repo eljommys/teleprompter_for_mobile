@@ -6,6 +6,8 @@
  * sanitización, docHeight compartido): aquí solo hay un aparato.
  */
 
+import type { TargetStabilizationMode } from 'react-native-vision-camera';
+
 import { t } from './i18n';
 
 export type PrompterSettings = {
@@ -22,13 +24,39 @@ export type PrompterSettings = {
   /** Alto de la banda del guion, en fracción del alto de la pantalla. */
   panelHeight: number;
   /**
+   * Dónde cae la línea de lectura dentro de la banda, en fracción de su alto.
+   * Subirla acerca la vista al objetivo de la cámara frontal, que es lo que
+   * hace que parezca que miras a cámara y no un poco por debajo.
+   */
+  readLine: number;
+  /**
    * Espejo en la cámara frontal. Con `<Camera>` el modo de espejo es de toda la
    * sesión, así que esto afecta a la vista previa y al fichero por igual —como
    * en la cámara del sistema—. El guion no se ve afectado: es un rótulo encima,
    * no parte de la imagen.
    */
   mirrorFront: boolean;
+  /** Estabilización de vídeo. Ver `STABILIZATION_MODES`. */
+  stabilization: TargetStabilizationMode;
+  /** ¿Ya sabe el usuario que un toque en el guion lo pone en marcha? */
+  tapHintSeen: boolean;
 };
+
+/**
+ * Los modos que se ofrecen, de menos a más.
+ *
+ * `TargetStabilizationMode` trae alguno más —`preview-optimized` y
+ * `low-latency`, que optimizan la vista previa y la latencia en vez de el
+ * fichero— y no pintan nada en una app en la que lo que importa es la toma
+ * grabada. `cinematic-extended-enhanced` se queda fuera por lo caro que sale
+ * en recorte de encuadre.
+ */
+export const STABILIZATION_MODES = [
+  'off',
+  'standard',
+  'cinematic',
+  'cinematic-extended',
+] as const satisfies readonly TargetStabilizationMode[];
 
 export const DEFAULT_SETTINGS: PrompterSettings = {
   text: t('defaultScript'),
@@ -37,7 +65,12 @@ export const DEFAULT_SETTINGS: PrompterSettings = {
   lineHeight: 1.4,
   opacity: 0.45,
   panelHeight: 0.42,
+  readLine: 0.4,
   mirrorFront: true,
+  // Sin `constraints` la sesión no pedía estabilización ninguna, y se notaba.
+  // 'standard' es la que Apple describe como la buena para vídeo grabado.
+  stabilization: 'standard',
+  tapHintSeen: false,
 };
 
 export const LIMITS = {
@@ -46,19 +79,25 @@ export const LIMITS = {
   lineHeight: { min: 1, max: 2.2, step: 0.05 },
   opacity: { min: 0, max: 0.9, step: 0.05 },
   panelHeight: { min: 0.2, max: 0.75, step: 0.01 },
+  // El tope de arriba no es 0: con la línea pegada al borde no queda sitio
+  // para leer la frase siguiente, que es justo para lo que sirve un
+  // teleprompter. El de abajo deja el texto por encima de la mitad.
+  readLine: { min: 0.1, max: 0.6, step: 0.01 },
 } as const;
 
 /**
- * El texto arranca al 40 % del alto de la banda —ahí está la línea de lectura—
- * y deja aire de sobra al final.
+ * Rellenos de la banda para que la línea de lectura caiga donde dice
+ * `readLine`.
  *
- * Con estos rellenos el recorrido medido es exactamente la altura del texto:
- * (0,4·H + T + 0,6·H) − H = T, sea cual sea H. Por eso la posición significa lo
- * mismo con la banda alta que con la banda baja, y cambiar el alto del panel no
- * te mueve del sitio del guion en el que ibas.
+ * La invariante que hay que respetar es que los dos rellenos sumen el alto de
+ * la banda: así el recorrido medido es exactamente la altura del texto,
+ * (r·H + T + (1−r)·H) − H = T, sea cual sea H y sea cual sea r. Por eso mover
+ * la línea de lectura —igual que cambiar el alto del panel o el cuerpo de
+ * letra— no te saca del sitio del guion en el que ibas.
  */
-export const READ_LINE_FRACTION = 0.4;
-export const TAIL_FRACTION = 0.6;
+export function readLinePaddings(height: number, readLine: number) {
+  return { top: height * readLine, bottom: height * (1 - readLine) };
+}
 
 /**
  * px/s de desplazamiento para una velocidad y un tamaño de fuente dados.

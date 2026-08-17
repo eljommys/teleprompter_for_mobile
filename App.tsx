@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import { useKeepAwake } from 'expo-keep-awake';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSharedValue } from 'react-native-reanimated';
@@ -71,6 +71,27 @@ function Studio() {
     fileType: 'mp4',
   });
   const { isRecording, duration, isBusy, toggle } = useRecorder(videoOutput);
+
+  /**
+   * La estabilización se congela mientras se graba.
+   *
+   * Cambiar una restricción reconfigura la sesión de cámara, y reconfigurar en
+   * mitad de una toma es exactamente lo que la parte —es el mismo motivo por el
+   * que girar de cámara necesita la grabadora persistente—. Mover el ajuste
+   * durante una grabación no hace nada; entra en cuanto paras.
+   */
+  const [appliedStabilization, setAppliedStabilization] = useState(settings.stabilization);
+  useEffect(() => {
+    if (isRecording) return;
+    setAppliedStabilization(settings.stabilization);
+  }, [isRecording, settings.stabilization]);
+
+  // Memorizado por valor: un array nuevo en cada render sería una sesión nueva
+  // en cada render.
+  const constraints = useMemo(
+    () => [{ videoStabilizationMode: appliedStabilization }],
+    [appliedStabilization],
+  );
 
   // Un único zoom vivo (el que consume la cámara) más la memoria de cada
   // cámara, para que volver de la frontal te devuelva el encuadre de antes.
@@ -151,6 +172,7 @@ function Studio() {
             device={device}
             isActive
             outputs={[videoOutput]}
+            constraints={constraints}
             zoom={zoom}
             // 'auto' espeja solo las cámaras frontales, que es lo que hace la
             // cámara del sistema. 'off' no espeja nada.
@@ -171,7 +193,14 @@ function Studio() {
         )}
 
         <View style={styles.band} pointerEvents="box-none">
-          {ready ? <Prompter settings={settings} scroll={scroll} height={panelHeight} /> : null}
+          {ready ? (
+            <Prompter
+              settings={settings}
+              scroll={scroll}
+              height={panelHeight}
+              onTapDiscovered={() => update({ tapHintSeen: true })}
+            />
+          ) : null}
         </View>
 
         <View

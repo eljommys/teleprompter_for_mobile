@@ -1,12 +1,9 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { useAnimatedScrollHandler } from 'react-native-reanimated';
+import Animated, { runOnJS, useAnimatedScrollHandler } from 'react-native-reanimated';
 
-import {
-  READ_LINE_FRACTION,
-  TAIL_FRACTION,
-  type PrompterSettings,
-} from '../lib/prompterSettings';
+import { t } from '../lib/i18n';
+import { readLinePaddings, type PrompterSettings } from '../lib/prompterSettings';
 import type { ScriptScroll } from '../lib/useScriptScroll';
 
 type Props = {
@@ -14,6 +11,8 @@ type Props = {
   scroll: ScriptScroll;
   /** Alto de la banda en px, ya calculado desde `settings.panelHeight`. */
   height: number;
+  /** Se llama la primera vez que alguien descubre el toque. */
+  onTapDiscovered: () => void;
 };
 
 /**
@@ -29,8 +28,9 @@ type Props = {
  * cero peleas por el gesto. El avance automático se sigue empujando desde el
  * hilo de UI con `scrollTo`, así que no da tirones mientras se graba.
  */
-export function Prompter({ settings, scroll, height }: Props) {
+export function Prompter({ settings, scroll, height, onTapDiscovered }: Props) {
   const { playing, travel, position, listRef, setViewportHeight, setContentHeight } = scroll;
+  const padding = readLinePaddings(height, settings.readLine);
 
   // Mientras arrastras mandas tú; el resto del tiempo, si está en marcha, manda
   // el bucle de fotogramas. Los dos escriben la misma posición normalizada, así
@@ -54,6 +54,9 @@ export function Prompter({ settings, scroll, height }: Props) {
     // Al final del guion, un toque lo rebobina en vez de no hacer nada.
     if (position.value >= 1) position.value = 0;
     playing.value = !playing.value;
+    // El gesto vive en el hilo de UI; guardar el ajuste es cosa de JS. Solo se
+    // cruza una vez en la vida de la instalación.
+    if (!settings.tapHintSeen) runOnJS(onTapDiscovered)();
   });
 
   const backgroundColor = `rgba(0, 0, 0, ${settings.opacity})`;
@@ -73,8 +76,8 @@ export function Prompter({ settings, scroll, height }: Props) {
           decelerationRate="fast"
           onContentSizeChange={(_width, contentHeight) => setContentHeight(contentHeight)}
           contentContainerStyle={{
-            paddingTop: height * READ_LINE_FRACTION,
-            paddingBottom: height * TAIL_FRACTION,
+            paddingTop: padding.top,
+            paddingBottom: padding.bottom,
           }}>
           <Text
             style={[
@@ -89,7 +92,16 @@ export function Prompter({ settings, scroll, height }: Props) {
         </Animated.ScrollView>
 
         {/* Marca de la línea de lectura: dónde apoyar la vista. */}
-        <View pointerEvents="none" style={[styles.readLine, { top: height * READ_LINE_FRACTION }]} />
+        <View pointerEvents="none" style={[styles.readLine, { top: padding.top }]} />
+
+        {/* El toque para poner el guion en marcha no se ve por ninguna parte, y
+            quien no lo descubre da por hecho que la app no lo hace. El aviso se
+            va solo en cuanto se usa una vez. */}
+        {settings.tapHintSeen ? null : (
+          <View pointerEvents="none" style={styles.hint}>
+            <Text style={styles.hintText}>{t('prompter.tapHint')}</Text>
+          </View>
+        )}
       </View>
     </GestureDetector>
   );
@@ -115,5 +127,19 @@ const styles = StyleSheet.create({
     right: 0,
     height: 1,
     backgroundColor: 'rgba(255, 255, 255, 0.22)',
+  },
+  hint: {
+    position: 'absolute',
+    alignSelf: 'center',
+    bottom: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+  },
+  hintText: {
+    color: 'rgba(255, 255, 255, 0.85)',
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

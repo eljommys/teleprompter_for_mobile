@@ -222,6 +222,13 @@ Al final de la misma pantalla.
 
 ### Notes
 
+**Estas notas se quedaron cortas.** La primera revisión las aceptó como
+información de acceso pero pidió, por la directriz 2.1, los siete puntos que
+Apple manda ahora a toda primera subida. El texto que sí los cubre está en
+`respuesta-revision-2.1.md`, cabe en los 4.000 caracteres del campo, y es el que
+hay que pegar aquí de ahora en adelante. Lo de abajo se queda como resumen de la
+mecánica de la app.
+
 > La app no necesita cuenta ni datos de acceso.
 >
 > Para probarla hace falta un dispositivo físico: usa la cámara y el micrófono, y
@@ -275,20 +282,76 @@ vende.
 
 ---
 
+## 8 bis · Novedades de la versión 1.1 (What's New, 4000)
+
+Campo obligatorio en cualquier versión que no sea la primera. Aparece en la
+pestaña de actualizaciones y en la ficha, bajo «Novedades».
+
+> La línea de lectura ahora se mueve. Súbela y leerás más cerca del objetivo de
+> la cámara frontal: se nota en el plano, porque dejas de mirar un poco por
+> debajo.
+>
+> Estabilización ajustable, de ninguna a máxima. Antes la elegía el sistema por
+> su cuenta; ahora la eliges tú, sabiendo que cuanta más estabilización, más
+> recorte de encuadre.
+>
+> Y el guion avisa de que se toca: un toque lo pone en marcha y otro lo para.
+> Estaba desde el primer día, pero no había forma de enterarse.
+
+---
+
 ## 8 · TestFlight
 
 Pestaña *TestFlight*. La build ya está arriba; esto es para abrir las pruebas
-externas.
+externas, que es lo que da el enlace público.
+
+Ojo a una cosa que confunde: la **revisión beta de TestFlight es otra cola,
+distinta de la de la App Store**. Que te hayan devuelto la ficha de la tienda no
+bloquea esto, y al revés tampoco.
+
+### Test Information (una vez por app, vale para todos los grupos)
+
+| Campo                     | Valor                                                              |
+| ------------------------- | ------------------------------------------------------------------ |
+| Feedback Email            | `jaime@rackslabs.com`                                               |
+| Privacy Policy URL        | `https://eljommys.github.io/teleprompter_for_mobile/privacidad.html`|
+| Marketing URL             | Opcional, déjalo vacío                                              |
+
+La de privacidad **es obligatoria para pruebas externas**, aunque en TestFlight
+no se recopile nada. Es la misma que la de la ficha.
 
 **Beta App Description**
 
-> Teleprompter y cámara en la misma pantalla del iPhone. Pega tu guion, dale a
-> grabar y lee. Puedes girar entre la cámara frontal y la trasera sin que se
-> corte la grabación.
+> Prompter es un teleprompter y una cámara en la misma pantalla del iPhone. Pegas
+> tu guion, le das a grabar y lees, sin trípode con cristal ni un segundo aparato
+> de visor.
+>
+> Lo que quiero probar antes de publicarla es que aguanta el mundo real: la
+> grabación no se corta al girar entre la cámara frontal y la trasera, y los
+> botones de zoom saltan a las lentes reales de cada modelo de iPhone, que es
+> justo lo que cambia de un teléfono a otro.
+>
+> No hace falta cuenta ni registro. La app no se conecta a internet: tu guion y
+> tus vídeos no salen del teléfono.
 
-**Feedback Email**: `jaime@rackslabs.com`
+### Beta App Review Information
 
-**What to Test**
+Es el equivalente a la sección 5 para la revisión beta. Los datos de contacto
+son internos: no los ve ningún tester, solo el revisor de Apple.
+
+| Campo               | Valor                    |
+| ------------------- | ------------------------ |
+| First Name          | Jaime                    |
+| Last Name           | Serrano González         |
+| Phone Number        | Tu móvil con +34         |
+| Email               | `jaime@rackslabs.com`    |
+| Sign-in required    | **No**                   |
+
+En **Review Notes**, las mismas notas de la sección 5: hace falta dispositivo
+físico, y los cuatro pasos para ver el cambio de cámara en caliente. Es lo que
+evita el rechazo por 2.1.
+
+### What to Test (por build)
 
 > Céntrate en el cambio de cámara en caliente: empieza a grabar, pulsa el botón
 > de girar varias veces y comprueba que el vídeo del Carrete sale de una pieza y
@@ -298,8 +361,11 @@ externas.
 > tienen que saltar a las lentes reales de tu modelo de iPhone. Si notas que el
 > 1× o el 5× no cuadran con la cámara del sistema, dilo con el modelo exacto.
 >
-> Y la lectura: velocidad, tamaño de letra e interlineado, a ver si el rango que
+> La lectura: velocidad, tamaño de letra e interlineado, a ver si el rango que
 > hay se te queda corto por algún lado.
+>
+> Y el idioma: la app sigue el del teléfono. Si lo tienes en inglés y ves algo en
+> español —o al revés—, dime en qué pantalla.
 
 Para el grupo externo (hasta 10.000 personas, enlace público) hace falta una
 revisión de Apple, más laxa que la de la Store y normalmente de menos de 24 h.

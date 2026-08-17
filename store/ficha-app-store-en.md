@@ -140,6 +140,56 @@ nada», traducir las dos es cosa de una hora.
 
 ---
 
+## What's New — version 1.1 (4000)
+
+> The reading line now moves. Raise it and you read closer to the front camera
+> lens, which shows in the shot: you stop looking slightly below it.
+>
+> Adjustable stabilization, from none to maximum. The system used to pick it on
+> its own; now you pick it, knowing that more stabilization means more crop.
+>
+> And the script tells you it can be tapped: one tap starts it, another stops
+> it. It worked from day one — there was just no way to find out.
+
+---
+
+## TestFlight
+
+Los dos campos de TestFlight que se ven en la tienda también son localizables, y
+están en el mismo panel que el resto de la información de pruebas.
+
+**Beta App Description**
+
+> Prompter is a teleprompter and a camera on the same iPhone screen. Paste your
+> script, hit record and read — no glass rig, no second device acting as a
+> monitor.
+>
+> What I want to check before shipping it is that it holds up in the real world:
+> the recording doesn't break when you switch between the front and rear camera,
+> and the zoom buttons jump to the real lenses on your model, which is the part
+> that differs from one phone to the next.
+>
+> No account, no sign-up. The app never connects to the internet: your script and
+> your videos don't leave the phone.
+
+**What to Test**
+
+> Focus on switching cameras mid-recording: start recording, tap the flip button
+> a few times, and check that the video in your Camera Roll comes out as a single
+> piece, with unbroken audio.
+>
+> The other thing I need eyes on is zoom on the rear camera: the lens buttons
+> should jump to the actual lenses on your iPhone model. If 1× or 5× doesn't line
+> up with what the system Camera app does, tell me your exact model.
+>
+> Reading: speed, text size and line spacing. Let me know if the range falls
+> short at either end for you.
+>
+> And language: the app follows your phone's. If your phone is in English and you
+> see something in Spanish — or the other way round — tell me which screen.
+
+---
+
 ## App Review Information
 
 No se traduce: es interna, la lee el revisor de Apple y no aparece en la tienda.

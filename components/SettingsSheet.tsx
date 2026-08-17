@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 
 import { formatDecimal, t } from '../lib/i18n';
-import { LIMITS, type PrompterSettings } from '../lib/prompterSettings';
+import { LIMITS, STABILIZATION_MODES, type PrompterSettings } from '../lib/prompterSettings';
 
 type Props = {
   visible: boolean;
@@ -83,12 +83,42 @@ export function SettingsSheet({ visible, settings, update, onClose, onRewind }: 
             onChange={(panelHeight) => update({ panelHeight })}
           />
           <LabeledSlider
+            label={t('settings.readLine')}
+            hint={t('settings.readLineHint')}
+            value={settings.readLine}
+            limits={LIMITS.readLine}
+            format={(value) => `${Math.round(value * 100)} %`}
+            onChange={(readLine) => update({ readLine })}
+          />
+          <LabeledSlider
             label={t('settings.opacity')}
             value={settings.opacity}
             limits={LIMITS.opacity}
             format={(value) => `${Math.round(value * 100)} %`}
             onChange={(opacity) => update({ opacity })}
           />
+
+          <Text style={styles.sectionLabel}>{t('settings.section.camera')}</Text>
+
+          <View style={styles.sliderRow}>
+            <Text style={styles.label}>{t('settings.stabilization')}</Text>
+            <View style={styles.segmented}>
+              {STABILIZATION_MODES.map((mode) => {
+                const active = settings.stabilization === mode;
+                return (
+                  <Pressable
+                    key={mode}
+                    style={[styles.segment, active && styles.segmentActive]}
+                    onPress={() => update({ stabilization: mode })}>
+                    <Text style={[styles.segmentText, active && styles.segmentTextActive]}>
+                      {t(`settings.stabilization.${mode}`)}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Text style={styles.hint}>{t('settings.stabilizationHint')}</Text>
+          </View>
 
           <View style={styles.switchRow}>
             <View style={styles.switchText}>
@@ -110,19 +140,21 @@ export function SettingsSheet({ visible, settings, update, onClose, onRewind }: 
 
 type SliderProps = {
   label: string;
+  hint?: string;
   value: number;
   limits: { min: number; max: number; step: number };
   format: (value: number) => string;
   onChange: (value: number) => void;
 };
 
-function LabeledSlider({ label, value, limits, format, onChange }: SliderProps) {
+function LabeledSlider({ label, hint, value, limits, format, onChange }: SliderProps) {
   return (
     <View style={styles.sliderRow}>
       <View style={styles.sliderHeader}>
         <Text style={styles.label}>{label}</Text>
         <Text style={styles.value}>{format(value)}</Text>
       </View>
+      {hint ? <Text style={styles.hint}>{hint}</Text> : null}
       <Slider
         minimumValue={limits.min}
         maximumValue={limits.max}
@@ -218,6 +250,31 @@ const styles = StyleSheet.create({
     color: '#8e8e93',
     fontSize: 12,
     marginTop: 2,
+  },
+  segmented: {
+    flexDirection: 'row',
+    backgroundColor: '#1c1c1e',
+    borderRadius: 10,
+    padding: 3,
+    marginTop: 8,
+    gap: 3,
+  },
+  segment: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  segmentActive: {
+    backgroundColor: ACCENT,
+  },
+  segmentText: {
+    color: '#8e8e93',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  segmentTextActive: {
+    color: '#000',
   },
   switchRow: {
     flexDirection: 'row',
