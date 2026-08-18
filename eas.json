@@ -28,7 +28,6 @@
   "submit": {
     "production": {
       "ios": {
-        "appleId": "jaime.serranogonzalez@proton.me",
         "appleTeamId": "25G3Q8388L",
         "ascAppId": "6799003999"
       }
