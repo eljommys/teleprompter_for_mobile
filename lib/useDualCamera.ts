@@ -208,32 +208,34 @@ export function useDualCamera(outputs: DualOutputs, options: Options): DualCamer
   const enabled = options.enabled;
 
   /**
-   * La sesión se crea una sola vez y se queda.
+   * La sesión se crea **una sola vez en toda la vida de la pantalla**, y no se
+   * vuelve a crear nunca.
    *
-   * Cambiar de lente o de estabilización **no** crea otra: una salida pertenece
-   * a una sola sesión mientras esta exista, y pararla no la suelta. Al abrir una
-   * segunda para el ajuste nuevo, las salidas seguían pilladas por la primera y
-   * la configuración se caía —lo que se veía en pantalla era el aviso de que no
-   * se pudieron abrir las dos cámaras—. Reconfigurar la misma sesión es
-   * justamente para lo que está `configure`.
+   * Una salida pertenece a una sola sesión mientras esa sesión exista, y
+   * `stop()` **no** la suelta: solo apaga las cámaras. Así que abrir una segunda
+   * sesión para el mismo par de salidas falla siempre, con «the given Preview
+   * Output is already connected to a different Camera Session». Pasaba al
+   * apagar el modo doble y volver a encenderlo, que es justo lo que hace
+   * cualquiera después de trastear con la cámara normal.
+   *
+   * Por eso encender y apagar el modo solo arranca y para esta misma sesión, y
+   * cambiar de lente o de estabilización la reconfigura en vez de reemplazarla.
+   * Una sesión parada no retiene el hardware, así que la cámara única puede
+   * trabajar a gusto mientras tanto.
    */
+  const sessionRef = useRef<CameraSession | null>(null);
   const [session, setSession] = useState<CameraSession | null>(null);
 
   useEffect(() => {
-    if (!enabled || !supported) return;
+    if (!enabled || !supported || sessionRef.current != null) return;
 
     let cancelled = false;
-    let created: CameraSession | null = null;
-
     queue.current = queue.current
       .then(async () => {
-        if (cancelled) return;
-        created = await VisionCamera.createCameraSession(true);
-        if (cancelled) {
-          await created.stop().catch(() => undefined);
-          return;
-        }
-        setSession(created);
+        if (cancelled || sessionRef.current != null) return;
+        const created = await VisionCamera.createCameraSession(true);
+        sessionRef.current = created;
+        if (!cancelled) setSession(created);
       })
       .catch((reason: unknown) => {
         if (!cancelled) setError(String(reason));
@@ -241,16 +243,20 @@ export function useDualCamera(outputs: DualOutputs, options: Options): DualCamer
 
     return () => {
       cancelled = true;
-      setSession(null);
-      setReady(false);
-      setControllers({ back: null, front: null });
-      // `created` se lee al ejecutarse la cola, no ahora, así que también se
-      // cierra la que se haya creado mientras esto iba a medias.
-      queue.current = queue.current.then(async () => {
-        await created?.stop().catch(() => undefined);
-      });
     };
   }, [enabled, supported]);
+
+  // Al irse la pantalla sí se para del todo: dejarla corriendo mantendría las
+  // cámaras encendidas de fondo.
+  useEffect(
+    () => () => {
+      const open = sessionRef.current;
+      queue.current = queue.current.then(async () => {
+        await open?.stop().catch(() => undefined);
+      });
+    },
+    [],
+  );
 
   useEffect(() => {
     if (session == null) return;
@@ -296,6 +302,17 @@ export function useDualCamera(outputs: DualOutputs, options: Options): DualCamer
     };
 
     const apply = async () => {
+      // Apagar el modo para la sesión, pero no la suelta: las salidas siguen
+      // siendo suyas, listas para volver a arrancar sin reconfigurar nada.
+      if (!enabled) {
+        if (session.isRunning) await session.stop();
+        if (!cancelled) {
+          setReady(false);
+          setControllers({ back: null, front: null });
+        }
+        return;
+      }
+
       const wanted: Constraint[] =
         stabilization === 'off'
           ? []
@@ -333,6 +350,7 @@ export function useDualCamera(outputs: DualOutputs, options: Options): DualCamer
     };
   }, [
     session,
+    enabled,
     mirrorFront,
     stabilization,
     appliedLensKey,
