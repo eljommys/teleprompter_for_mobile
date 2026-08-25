@@ -14,9 +14,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   CommonResolutions,
-  usePreviewOutput,
   useOrientation,
-  useVideoOutput,
   VisionCamera,
   type CameraController,
   type CameraDevice,
@@ -81,6 +79,61 @@ type Options = {
 };
 
 /**
+ * La sesión y sus cuatro salidas, únicas en todo el proceso y para siempre.
+ *
+ * Que sean de módulo y no del componente no es manía de rendimiento: es lo que
+ * evita un crash. Una salida pertenece a una sesión mientras esa sesión exista,
+ * y `stop()` no la suelta. Si se queda una sesión antigua sin referencias, el
+ * recolector de Hermes la libera **cuando le apetece**, y ese `dealloc` intenta
+ * desconectar unas salidas que para entonces ya son de otra sesión: AVFoundation
+ * salta con un `assert` y mata la app. Pasaba tocando cualquier cosa —un slider
+ * de los ajustes valía— porque lo que lo dispara es la recolección, no la acción.
+ *
+ * Guardándolas aquí nunca hay una segunda sesión ni nadie a quien recolectar, así
+ * que ese `dealloc` no llega a ocurrir. Sobreviven además a que el componente se
+ * desmonte y se vuelva a montar.
+ */
+let shared: { session: CameraSession | null; outputs: DualOutputs | null } = {
+  session: null,
+  outputs: null,
+};
+/** La creación en vuelo, para que dos llamadas seguidas no abran dos sesiones. */
+let openingSession: Promise<CameraSession> | null = null;
+
+function getDualOutputs(): DualOutputs {
+  shared.outputs ??= {
+    backPreview: VisionCamera.createPreviewOutput(),
+    frontPreview: VisionCamera.createPreviewOutput(),
+    backVideo: VisionCamera.createVideoOutput({
+      targetResolution: CommonResolutions.FHD_16_9,
+      enableAudio: true,
+      enablePersistentRecorder: true,
+      targetBitRate: DUAL_BIT_RATE,
+      fileType: 'mp4',
+    }),
+    // Sin audio: hay un solo micrófono y el montaje se queda con la pista de la
+    // toma de fondo. Dos copias del mismo sonido solo darían eco.
+    frontVideo: VisionCamera.createVideoOutput({
+      targetResolution: CommonResolutions.FHD_16_9,
+      enableAudio: false,
+      enablePersistentRecorder: true,
+      targetBitRate: DUAL_BIT_RATE,
+      fileType: 'mp4',
+    }),
+  };
+  return shared.outputs;
+}
+
+function getDualSession(): Promise<CameraSession> {
+  if (shared.session != null) return Promise.resolve(shared.session);
+  openingSession ??= VisionCamera.createCameraSession(true).then((created) => {
+    shared.session = created;
+    return created;
+  });
+  return openingSession;
+}
+
+/**
  * Las cuatro salidas de la sesión doble.
  *
  * Van aparte de la sesión porque quien graba las necesita antes de que exista
@@ -89,29 +142,7 @@ type Options = {
  * quien graba, que a su vez necesita las salidas.
  */
 export function useDualOutputs(): DualOutputs {
-  const backPreview = usePreviewOutput();
-  const frontPreview = usePreviewOutput();
-  const backVideo = useVideoOutput({
-    targetResolution: CommonResolutions.FHD_16_9,
-    enableAudio: true,
-    enablePersistentRecorder: true,
-    targetBitRate: DUAL_BIT_RATE,
-    fileType: 'mp4',
-  });
-  const frontVideo = useVideoOutput({
-    // Sin audio: hay un solo micrófono y el montaje se queda con la pista de la
-    // toma de fondo. Dos copias del mismo sonido solo darían eco.
-    targetResolution: CommonResolutions.FHD_16_9,
-    enableAudio: false,
-    enablePersistentRecorder: true,
-    targetBitRate: DUAL_BIT_RATE,
-    fileType: 'mp4',
-  });
-
-  return useMemo(
-    () => ({ backPreview, frontPreview, backVideo, frontVideo }),
-    [backPreview, frontPreview, backVideo, frontVideo],
-  );
+  return useMemo(getDualOutputs, []);
 }
 
 /**
@@ -208,34 +239,21 @@ export function useDualCamera(outputs: DualOutputs, options: Options): DualCamer
   const enabled = options.enabled;
 
   /**
-   * La sesión se crea **una sola vez en toda la vida de la pantalla**, y no se
-   * vuelve a crear nunca.
-   *
-   * Una salida pertenece a una sola sesión mientras esa sesión exista, y
-   * `stop()` **no** la suelta: solo apaga las cámaras. Así que abrir una segunda
-   * sesión para el mismo par de salidas falla siempre, con «the given Preview
-   * Output is already connected to a different Camera Session». Pasaba al
-   * apagar el modo doble y volver a encenderlo, que es justo lo que hace
-   * cualquiera después de trastear con la cámara normal.
-   *
-   * Por eso encender y apagar el modo solo arranca y para esta misma sesión, y
-   * cambiar de lente o de estabilización la reconfigura en vez de reemplazarla.
-   * Una sesión parada no retiene el hardware, así que la cámara única puede
-   * trabajar a gusto mientras tanto.
+   * La sesión es la única del proceso (ver `shared`, arriba). Aquí solo se pide
+   * la primera vez que hace falta; encender y apagar el modo la arranca y la
+   * para, y cambiar de lente o de estabilización la reconfigura. Nunca se
+   * reemplaza ni se suelta.
    */
-  const sessionRef = useRef<CameraSession | null>(null);
-  const [session, setSession] = useState<CameraSession | null>(null);
+  const [session, setSession] = useState<CameraSession | null>(shared.session);
 
   useEffect(() => {
-    if (!enabled || !supported || sessionRef.current != null) return;
+    if (!enabled || !supported || session != null) return;
 
     let cancelled = false;
     queue.current = queue.current
       .then(async () => {
-        if (cancelled || sessionRef.current != null) return;
-        const created = await VisionCamera.createCameraSession(true);
-        sessionRef.current = created;
-        if (!cancelled) setSession(created);
+        const open = await getDualSession();
+        if (!cancelled) setSession(open);
       })
       .catch((reason: unknown) => {
         if (!cancelled) setError(String(reason));
@@ -244,15 +262,14 @@ export function useDualCamera(outputs: DualOutputs, options: Options): DualCamer
     return () => {
       cancelled = true;
     };
-  }, [enabled, supported]);
+  }, [enabled, supported, session]);
 
-  // Al irse la pantalla sí se para del todo: dejarla corriendo mantendría las
-  // cámaras encendidas de fondo.
+  // Al irse la pantalla se paran las cámaras, pero la sesión se queda viva: si
+  // se soltara, el recolector la destruiría y ahí está el crash.
   useEffect(
     () => () => {
-      const open = sessionRef.current;
       queue.current = queue.current.then(async () => {
-        await open?.stop().catch(() => undefined);
+        if (shared.session?.isRunning) await shared.session.stop().catch(() => undefined);
       });
     },
     [],
