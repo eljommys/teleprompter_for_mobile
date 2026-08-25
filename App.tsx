@@ -113,14 +113,28 @@ function Studio() {
   // `<Camera>` de una sola cámara para que nunca convivan las dos sesiones.
   const dualRequested = settings.dualCamera && supportsDual;
 
+  /**
+   * Las dos sesiones se turnan de verdad, no a la vez.
+   *
+   * La cámara única ya no se desmonta —eso mataba la app—, así que ahora hay dos
+   * sesiones vivas y hay que asegurarse de que solo una tiene el hardware: si se
+   * solapan, iOS interrumpe una y la imagen se queda congelada. La doble espera
+   * a que la única avise de que ha parado, y la única espera a que la doble deje
+   * de estar lista.
+   */
+  const [singleRunning, setSingleRunning] = useState(false);
+  const dualEnabled = dualRequested && !singleRunning;
+
   const dual = useDualCamera(dualOutputs, {
-    enabled: dualRequested,
+    enabled: dualEnabled,
     mirrorFront: settings.mirrorFront,
     stabilization: settings.stabilization,
     backLenses: settings.backLenses,
     isRecording: dualRecorder.isRecording,
   });
   const dualMode = dualRequested && dual.ready;
+  // La única no vuelve hasta que la doble suelta el hardware.
+  const singleActive = !dualRequested && !dual.ready;
 
   const { isRecording, duration, isBusy, toggle } = dualRequested ? dualRecorder : single;
   const isComposing = dualRecorder.isComposing;
@@ -357,7 +371,7 @@ function Studio() {
             ref={camera}
             style={[StyleSheet.absoluteFill, dualRequested ? styles.hidden : null]}
             device={device}
-            isActive={!dualRequested}
+            isActive={singleActive}
             outputs={[videoOutput]}
             constraints={constraints}
             zoom={zoom}
@@ -368,7 +382,11 @@ function Studio() {
             // interfaz es la orientación correcta para el fichero.
             orientationSource="interface"
             resizeMode="cover"
-            onStarted={syncZoomScale}
+            onStarted={() => {
+              setSingleRunning(true);
+              syncZoomScale();
+            }}
+            onStopped={() => setSingleRunning(false)}
             onConfigured={syncZoomScale}
             onSessionConfigSelected={setSessionConfig}
           />
