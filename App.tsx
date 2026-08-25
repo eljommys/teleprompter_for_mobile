@@ -342,41 +342,22 @@ function Studio() {
     <View style={styles.root}>
       <StatusBar style="light" />
 
-        {dualRequested ? (
-          dualMode ? (
-            // La de fondo llena el cuadro. El recuadro con la otra no va aquí:
-            // se pinta más abajo, por encima del guion.
-            <NativePreviewView
-              previewOutput={facing === 'back' ? dualOutputs.backPreview : dualOutputs.frontPreview}
-              resizeMode="cover"
-              style={StyleSheet.absoluteFill}
-            />
-          ) : (
-            // Mientras la sesión de dos cámaras se levanta no se monta el
-            // `<Camera>` de abajo, aunque todavía no haya nada que enseñar: el
-            // `<Camera>` abre su propia sesión, y dos sesiones a la vez es justo
-            // lo que hace que iOS interrumpa una de las dos.
-            //
-            // Si además ha fallado, hay que decirlo: si no, el interruptor se
-            // queda encendido enseñando una cámara normal y parece que el modo
-            // no hace nada.
-            <View style={styles.placeholder}>
-              <Text style={styles.placeholderText}>
-                {dual.error == null ? t('camera.searching') : t('camera.dualFailed')}
-              </Text>
-              {/* El motivo de verdad, en pequeño: el mensaje de arriba vale
-                  para cualquier fallo y disfrazaba causas muy distintas. */}
-              {dual.error == null ? null : (
-                <Text style={styles.placeholderDetail}>{dual.error}</Text>
-              )}
-            </View>
-          )
-        ) : device != null && cameraPermission.hasPermission ? (
+        {/* La cámara única no se desmonta al pasar al modo doble: solo se
+            apaga con `isActive` y se esconde.
+
+            Desmontarla es lo que mataba la app. Al quitarla, `<Camera>` suelta
+            su sesión con un `stop()` y un `configure([])` que nadie espera; si
+            el recolector de Hermes llega a esa sesión antes de que termine de
+            desconectar sus salidas, AVFoundation aborta el proceso desde el
+            `dealloc`. Reventaba sin tocar nada porque lo dispara el recolector,
+            no el usuario. Apagada y montada, la sesión sigue viva y con sus
+            salidas en orden. */}
+        {device != null && cameraPermission.hasPermission ? (
           <Camera
             ref={camera}
-            style={StyleSheet.absoluteFill}
+            style={[StyleSheet.absoluteFill, dualRequested ? styles.hidden : null]}
             device={device}
-            isActive
+            isActive={!dualRequested}
             outputs={[videoOutput]}
             constraints={constraints}
             zoom={zoom}
@@ -391,13 +372,38 @@ function Studio() {
             onConfigured={syncZoomScale}
             onSessionConfigSelected={setSessionConfig}
           />
-        ) : (
+        ) : null}
+
+        {dualRequested ? (
+          dualMode ? (
+            // La de fondo llena el cuadro. El recuadro con la otra no va aquí:
+            // se pinta más abajo, por encima del guion.
+            <NativePreviewView
+              previewOutput={facing === 'back' ? dualOutputs.backPreview : dualOutputs.frontPreview}
+              resizeMode="cover"
+              style={StyleSheet.absoluteFill}
+            />
+          ) : (
+            // Si ha fallado hay que decirlo: si no, el interruptor se queda
+            // encendido sin enseñar nada y parece que el modo no hace nada.
+            <View style={styles.placeholder}>
+              <Text style={styles.placeholderText}>
+                {dual.error == null ? t('camera.searching') : t('camera.dualFailed')}
+              </Text>
+              {/* El motivo de verdad, en pequeño: el mensaje de arriba vale
+                  para cualquier fallo y disfrazaba causas muy distintas. */}
+              {dual.error == null ? null : (
+                <Text style={styles.placeholderDetail}>{dual.error}</Text>
+              )}
+            </View>
+          )
+        ) : device == null || !cameraPermission.hasPermission ? (
           <View style={styles.placeholder}>
             <Text style={styles.placeholderText}>
               {cameraPermission.hasPermission ? t('camera.searching') : t('camera.noPermission')}
             </Text>
           </View>
-        )}
+        ) : null}
 
         <View style={[styles.band, { top: bandTop }]} pointerEvents="box-none">
           {ready ? (
@@ -532,6 +538,11 @@ const styles = StyleSheet.create({
     left: 0,
     width: 56,
     height: 56,
+  },
+  hidden: {
+    // Apagada pero montada: se esconde sin quitarla del árbol, que es justo lo
+    // que no se puede hacer.
+    opacity: 0,
   },
   placeholderDetail: {
     color: '#8e8e93',
