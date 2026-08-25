@@ -1,5 +1,7 @@
 import type { CameraController, CameraDevice } from 'react-native-vision-camera';
 
+import { formatDecimal } from './i18n';
+
 /**
  * El zoom de VisionCamera tiene DOS escalas y no coinciden.
  *
@@ -43,7 +45,9 @@ export function toRaw(display: number, scale: ZoomScale): number {
 /** Etiqueta corta para un botón de lente: 0,5× · 1× · 3×. */
 export function formatZoom(display: number): string {
   const rounded = Math.round(display * 10) / 10;
-  const text = Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1).replace('.', ',');
+  // El separador lo pone el idioma: la coma estaba puesta a mano y salía
+  // también en inglés, donde toca punto.
+  const text = Number.isInteger(rounded) ? String(rounded) : formatDecimal(rounded, 1);
   return `${text}×`;
 }
 

@@ -1,17 +1,27 @@
 import { StatusBar } from 'expo-status-bar';
 import { useKeepAwake } from 'expo-keep-awake';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSharedValue } from 'react-native-reanimated';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Camera,
   CommonResolutions,
+  NativePreviewView,
   useCameraDevice,
+  useCameraDevices,
   useCameraPermission,
   useMicrophonePermission,
   useVideoOutput,
+  VisionCamera,
   type CameraRef,
   type CameraSessionConfig,
   type TargetCameraPosition,
@@ -20,13 +30,17 @@ import {
 import { ControlBar } from './components/ControlBar';
 import { t } from './lib/i18n';
 import { DebugPanel } from './components/DebugPanel';
+import { PipPreview } from './components/PipPreview';
 import { Prompter } from './components/Prompter';
 import { SettingsSheet } from './components/SettingsSheet';
 import { ZoomControls } from './components/ZoomControls';
+import { canComposeVideo } from './modules/video-composer';
+import { useDualCamera, useDualOutputs } from './lib/useDualCamera';
+import { useDualRecorder } from './lib/useDualRecorder';
 import { useRecorder } from './lib/useRecorder';
 import { useScriptScroll } from './lib/useScriptScroll';
 import { useSettings } from './lib/useSettings';
-import { STABILIZATION_MODES } from './lib/prompterSettings';
+import { LENS_TYPES, STABILIZATION_MODES } from './lib/prompterSettings';
 import { buildZoomScale, clampZoom, type ZoomScale } from './lib/zoom';
 
 /**
@@ -39,7 +53,7 @@ const FLIP_COOLDOWN = 600;
 function Studio() {
   useKeepAwake();
   const insets = useSafeAreaInsets();
-  const { height: screenHeight } = useWindowDimensions();
+  const { height: screenHeight, width: screenWidth } = useWindowDimensions();
 
   const camera = useRef<CameraRef>(null);
   const cameraPermission = useCameraPermission();
@@ -53,14 +67,6 @@ function Studio() {
   const { settings, loaded, update } = useSettings();
   const scroll = useScriptScroll(settings.speed, settings.fontSize);
 
-  // La trasera se pide con las tres lentes: es lo que da las paradas ópticas de
-  // 0,5× / 1× / 3×. La frontal es una sola lente, sin filtro que valga.
-  const backDevice = useCameraDevice('back', {
-    physicalDevices: ['ultra-wide-angle', 'wide-angle', 'telephoto'],
-  });
-  const frontDevice = useCameraDevice('front');
-  const device = facing === 'back' ? backDevice : frontDevice;
-
   /**
    * La grabadora persistente es la pieza que permite girar la cámara sin cortar
    * la toma: en iOS cambia a una tubería de `AVCaptureVideoDataOutput` +
@@ -72,7 +78,94 @@ function Studio() {
     enablePersistentRecorder: true,
     fileType: 'mp4',
   });
-  const { isRecording, duration, isBusy, toggle } = useRecorder(videoOutput);
+  const single = useRecorder(videoOutput);
+
+  /**
+   * Las dos cámaras a la vez. La sesión solo se levanta con el modo encendido:
+   * no puede haber dos sesiones vivas, así que esta y el `<Camera>` de abajo se
+   * turnan.
+   *
+   * Las salidas van antes que la sesión porque quien graba las necesita para
+   * poder decir si hay una toma en marcha, y la sesión necesita saberlo para no
+   * reconfigurarse en mitad. Si colgaran de la sesión, no habría por dónde
+   * empezar.
+   */
+  const dualOutputs = useDualOutputs();
+  // Las salidas van fijas —la trasera siempre a la de atrás, que es la que
+  // lleva el audio— y quien manda en el cuadro se decide en el montaje. Así
+  // girar en mitad de una toma no toca las grabadoras: solo apunta el cambio.
+  const dualRecorder = useDualRecorder({
+    back: dualOutputs.backVideo,
+    front: dualOutputs.frontVideo,
+    shot: {
+      backIsBackground: facing === 'back',
+      x: settings.pipX,
+      y: settings.pipY,
+      width: settings.pipWidth,
+    },
+    screenAspect: screenWidth / screenHeight,
+  });
+
+  // Hacen falta las dos cosas: que el iPhone aguante dos cámaras y que este
+  // binario traiga el montador nativo que las funde.
+  const supportsDual = canComposeVideo && VisionCamera.supportsMultiCamSessions;
+  // Lo que el usuario ha pedido, esté la sesión lista o no. Manda sobre el
+  // `<Camera>` de una sola cámara para que nunca convivan las dos sesiones.
+  const dualRequested = settings.dualCamera && supportsDual;
+
+  const dual = useDualCamera(dualOutputs, {
+    enabled: dualRequested,
+    mirrorFront: settings.mirrorFront,
+    stabilization: settings.stabilization,
+    backLenses: settings.backLenses,
+    isRecording: dualRecorder.isRecording,
+  });
+  const dualMode = dualRequested && dual.ready;
+
+  const { isRecording, duration, isBusy, toggle } = dualRequested ? dualRecorder : single;
+  const isComposing = dualRecorder.isComposing;
+
+  /**
+   * Las lentes de la trasera las elige el usuario; por defecto van las tres, que
+   * es lo que da las paradas ópticas de 0,5× / 1× / 3×. La frontal es una sola
+   * lente, sin filtro que valga.
+   *
+   * El filtro puntúa: suma por cada lente pedida y resta por cada una de más,
+   * así que pedir solo la principal se lleva la cámara de una lente en vez de la
+   * triple. O sea que sí limita de verdad, aunque su nombre diga «filtro».
+   *
+   * Se congelan mientras se graba, por lo mismo que la estabilización: cambiar
+   * de lente cambia de dispositivo, y eso reconfigura la sesión en mitad de la
+   * toma. El cambio entra en cuanto paras.
+   */
+  const [appliedLenses, setAppliedLenses] = useState(settings.backLenses);
+  useEffect(() => {
+    if (isRecording) return;
+    setAppliedLenses(settings.backLenses);
+  }, [isRecording, settings.backLenses]);
+  const backLensFilter = useMemo(() => ({ physicalDevices: appliedLenses }), [appliedLenses]);
+  const backDevice = useCameraDevice('back', backLensFilter);
+  const frontDevice = useCameraDevice('front');
+  const device = facing === 'back' ? backDevice : frontDevice;
+
+  /**
+   * Las lentes que este iPhone tiene de verdad detrás.
+   *
+   * Se sacan de todas las cámaras traseras que enumera el sistema, no del
+   * dispositivo activo: el activo es justo el que acaba de recortar el filtro,
+   * así que preguntarle a él por las lentes disponibles dejaría fuera las que el
+   * usuario ha desmarcado y ya no podría volver a marcarlas.
+   */
+  const allDevices = useCameraDevices();
+  const availableLenses = useMemo(() => {
+    const present = new Set<string>();
+    for (const candidate of allDevices) {
+      if (candidate.position !== 'back') continue;
+      if (candidate.physicalDevices.length === 0) present.add(candidate.type);
+      for (const physical of candidate.physicalDevices) present.add(physical.type);
+    }
+    return LENS_TYPES.filter((lens) => present.has(lens));
+  }, [allDevices]);
 
   /**
    * La estabilización se congela mientras se graba.
@@ -164,6 +257,45 @@ function Studio() {
   }, [device, facing, zoom]);
 
   /**
+   * El controlador de la cámara que llena el cuadro, con las dos abiertas.
+   *
+   * Sin `<Camera>` no hay prop `zoom` que atar a la sesión, así que el zoom se
+   * le pide a mano al controlador que devolvió `configure`. Al girar cambia el
+   * controlador, y con él el rango: cada cámara tiene el suyo.
+   */
+  const dualController = dualMode
+    ? facing === 'back'
+      ? dual.backController
+      : dual.frontController
+    : null;
+
+  useEffect(() => {
+    if (dualController == null) return;
+    const next = buildZoomScale(dualController.device, dualController);
+    setScale(next);
+    const remembered = rememberedZoom.current[facing];
+    const restored = clampZoom(remembered ?? next.minRaw, next);
+    zoom.value = restored;
+    setZoomUi(restored);
+    void dualController.setZoom(restored);
+  }, [dualController, facing, zoom]);
+
+  /**
+   * Lleva el zoom a la cámara.
+   *
+   * Con una sola cámara lo hace `<Camera zoom={...}>` por su cuenta desde el
+   * hilo de UI; con dos hay que empujarlo aquí, que es lo que iguala el
+   * comportamiento de los dos modos.
+   */
+  const applyZoom = useCallback(
+    (raw: number) => {
+      setZoomUi(raw);
+      if (dualController != null) void dualController.setZoom(raw);
+    },
+    [dualController],
+  );
+
+  /**
    * Apunta el zoom en el que te has quedado con esta cámara.
    *
    * Se llama al soltar el pellizco y al pulsar una lente, no en cada fotograma:
@@ -192,15 +324,16 @@ function Studio() {
   /**
    * Dónde se coloca la banda del guion.
    *
-   * El hueco libre se mide contra el bloque de controles de abajo —medido, no
-   * estimado— y contra el área segura de arriba, así que la banda nunca se mete
-   * debajo de la isla dinámica ni tapa el botón de grabar. Con `panelTop` a 0 la
-   * banda queda lo más cerca posible del objetivo de la cámara frontal, que es
-   * para lo que existe este ajuste.
+   * El recorrido llega hasta el borde de arriba del todo, por debajo de la hora
+   * y de la isla dinámica. Es a propósito y no un descuido del área segura: en
+   * un teleprompter, lo que se persigue es leer lo más cerca posible del
+   * objetivo de la cámara frontal, y esos milímetros son justo la diferencia
+   * entre parecer que miras a cámara y parecer que lees. Por abajo sí se
+   * respeta el bloque de controles —medido, no estimado—, que ahí no hay nada
+   * que ganar y sí un botón de grabar que no se puede tapar.
    */
   const [controlsHeight, setControlsHeight] = useState(0);
-  const bandTop =
-    insets.top + Math.max(0, screenHeight - insets.top - controlsHeight - panelHeight) * settings.panelTop;
+  const bandTop = Math.max(0, screenHeight - controlsHeight - panelHeight) * settings.panelTop;
   // El guion no depende de la cámara. Si falta el permiso o no hay dispositivo,
   // el fondo se queda negro pero se sigue pudiendo leer y ensayar.
   const ready = loaded;
@@ -209,7 +342,36 @@ function Studio() {
     <View style={styles.root}>
       <StatusBar style="light" />
 
-        {device != null && cameraPermission.hasPermission ? (
+        {dualRequested ? (
+          dualMode ? (
+            // La de fondo llena el cuadro. El recuadro con la otra no va aquí:
+            // se pinta más abajo, por encima del guion.
+            <NativePreviewView
+              previewOutput={facing === 'back' ? dualOutputs.backPreview : dualOutputs.frontPreview}
+              resizeMode="cover"
+              style={StyleSheet.absoluteFill}
+            />
+          ) : (
+            // Mientras la sesión de dos cámaras se levanta no se monta el
+            // `<Camera>` de abajo, aunque todavía no haya nada que enseñar: el
+            // `<Camera>` abre su propia sesión, y dos sesiones a la vez es justo
+            // lo que hace que iOS interrumpa una de las dos.
+            //
+            // Si además ha fallado, hay que decirlo: si no, el interruptor se
+            // queda encendido enseñando una cámara normal y parece que el modo
+            // no hace nada.
+            <View style={styles.placeholder}>
+              <Text style={styles.placeholderText}>
+                {dual.error == null ? t('camera.searching') : t('camera.dualFailed')}
+              </Text>
+              {/* El motivo de verdad, en pequeño: el mensaje de arriba vale
+                  para cualquier fallo y disfrazaba causas muy distintas. */}
+              {dual.error == null ? null : (
+                <Text style={styles.placeholderDetail}>{dual.error}</Text>
+              )}
+            </View>
+          )
+        ) : device != null && cameraPermission.hasPermission ? (
           <Camera
             ref={camera}
             style={StyleSheet.absoluteFill}
@@ -248,6 +410,22 @@ function Studio() {
           ) : null}
         </View>
 
+        {/* Después del guion a propósito: por encima, para que se pueda coger
+            siempre. Debajo, si lo soltabas sobre la banda del guion te quedabas
+            sin poder volver a moverlo, porque los toques se los quedaba el
+            guion. Va antes de los controles de abajo, que sí deben taparlo:
+            entre mover el recuadro y llegar al botón de grabar, manda el botón. */}
+        {dualMode ? (
+          <PipPreview
+            previewOutput={facing === 'back' ? dualOutputs.frontPreview : dualOutputs.backPreview}
+            canvas={{ width: screenWidth, height: screenHeight }}
+            x={settings.pipX}
+            y={settings.pipY}
+            width={settings.pipWidth}
+            onMoved={({ x, y }) => update({ pipX: x, pipY: y })}
+          />
+        ) : null}
+
         <View
           style={[styles.bottom, { paddingBottom: insets.bottom + 14 }]}
           onLayout={(event) => setControlsHeight(event.nativeEvent.layout.height)}
@@ -256,7 +434,7 @@ function Studio() {
             scale={scale}
             zoom={zoom}
             zoomUi={zoomUi}
-            onChangeZoom={setZoomUi}
+            onChangeZoom={applyZoom}
             onSettle={rememberZoom}
           />
           <ControlBar
@@ -265,10 +443,23 @@ function Studio() {
             duration={duration}
             onToggleRecord={toggle}
             onFlip={flip}
-            canFlip={backDevice != null && frontDevice != null}
+            // Con las dos cámaras se puede girar también grabando, que es de lo
+            // que va el modo: las dos están ya en el fichero y el cambio solo
+            // decide quién llena el cuadro a partir de ese segundo.
+            canFlip={dualMode || (backDevice != null && frontDevice != null)}
             onOpenSettings={() => setShowSettings(true)}
           />
         </View>
+
+        {/* Fundir las dos tomas es una exportación entera y tarda lo suyo. Sin
+            avisar, el rato entre parar y ver el vídeo en el Carrete parece que
+            la grabación se ha perdido. */}
+        {isComposing ? (
+          <View pointerEvents="none" style={[styles.composing, { top: insets.top + 12 }]}>
+            <ActivityIndicator color="#fff" size="small" />
+            <Text style={styles.composingText}>{t('recorder.composing')}</Text>
+          </View>
+        ) : null}
 
         {/* Esquina muerta, sin nada dibujado: un toque largo enseña los números
             crudos de la cámara. */}
@@ -285,6 +476,9 @@ function Studio() {
           visible={showSettings}
           settings={settings}
           availableStabilization={availableStabilization}
+          availableLenses={availableLenses}
+          supportsDualCamera={supportsDual}
+          stabilizationDropped={dualMode && !dual.stabilized}
           update={update}
           onClose={() => setShowSettings(false)}
           onRewind={scroll.rewind}
@@ -338,5 +532,28 @@ const styles = StyleSheet.create({
     left: 0,
     width: 56,
     height: 56,
+  },
+  placeholderDetail: {
+    color: '#8e8e93',
+    fontSize: 12,
+    marginTop: 8,
+    paddingHorizontal: 32,
+    textAlign: 'center',
+  },
+  composing: {
+    position: 'absolute',
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+  },
+  composingText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
   },
 });

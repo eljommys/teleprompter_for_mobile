@@ -1,0 +1,55 @@
+=== NOMBRE (30) ===
+Teleprompter y Cámara
+
+=== SUBTÍTULO (30) ===
+Sin cuota ni marca de agua
+
+=== TEXTO PROMOCIONAL (170) ===
+Cambia entre la cámara frontal y la trasera sin cortar la grabación. Un solo vídeo, sin saltos. Y el guion delante todo el rato, a la velocidad que tú marques.
+
+=== DESCRIPCIÓN (4000) ===
+Graba a cámara leyendo tu guion, sin montar nada después.
+
+Prompter pone el teleprompter encima de la cámara de tu iPhone. Pegas el texto, le das a grabar y lees. Sin trípode con cristal, sin un iPad de segundo aparato, sin Wi-Fi de por medio.
+
+CAMBIA DE CÁMARA SIN CORTAR LA TOMA
+Empieza con la trasera, pásate a la frontal a mitad de frase y vuelve. La grabación no se parte: sale un único vídeo con el audio continuo de principio a fin. Se acabó grabar dos veces y pegarlo después.
+
+LAS DOS CÁMARAS A LA VEZ
+Graba con la trasera y la frontal al mismo tiempo: una llena el cuadro y la otra va en un recuadro que arrastras a donde no te tape nada. Al parar, las dos tomas se funden en un solo vídeo.
+
+EL GUION A TU RITMO
+Arrástralo con el dedo para colocarlo donde quieras. Tócalo una vez y avanza solo; tócalo otra y para. La velocidad, el tamaño de letra, el ancho y el interlineado se ajustan mientras grabas, y una línea marca por dónde vas leyendo.
+
+MIRA A CÁMARA, NO AL GUION
+Sube la caja del texto hasta pegarla al objetivo de la cámara frontal. Esa es la diferencia entre parecer que lees y parecer que hablas, y se nota en el plano desde el primer segundo.
+
+ZOOM DE VERDAD
+En la cámara trasera, los botones saltan entre las lentes reales de tu iPhone —gran angular, principal, teleobjetivo—, no es un recorte digital. Un deslizador te lleva a cualquier punto intermedio. En la frontal, aumento digital con el mismo control.
+
+VERTICAL, LISTO PARA PUBLICAR
+Graba en 9:16 a 1080p. Al parar, la toma va directa a tu Carrete y la editas donde ya editas.
+
+TUYO Y DE NADIE MÁS
+Sin cuenta, sin suscripción, sin anuncios y sin marca de agua. Prompter no se conecta a internet: funciona igual en modo avión. Tu guion y tus vídeos no salen del teléfono.
+
+Hecho para quien graba a cámara a menudo: vídeos para redes, formación, presentaciones, mensajes de venta.
+
+=== PALABRAS CLAVE (100, sin espacios tras la coma) ===
+guion,grabar,video,reels,shorts,tiktok,youtube,creador,texto,apuntador,vertical,prompter,discurso
+
+=== URL DE SOPORTE ===
+https://eljommys.github.io/teleprompter_for_mobile/
+
+=== URL DE POLÍTICA DE PRIVACIDAD ===
+https://eljommys.github.io/teleprompter_for_mobile/privacidad.html
+
+=== COPYRIGHT ===
+2026 Racks Labs
+
+=== NOVEDADES DE LA VERSIÓN ===
+La línea de lectura ahora se mueve. Súbela y leerás más cerca del objetivo de la cámara frontal: se nota en el plano, porque dejas de mirar un poco por debajo.
+
+Puedes grabar con las dos cámaras a la vez, con la segunda en un recuadro que arrastras donde quieras.
+
+Y el guion avisa de que se toca: un toque lo pone en marcha y otro lo para.

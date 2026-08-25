@@ -1,0 +1,55 @@
+=== NAME (30) ===
+Teleprompter & Camera
+
+=== SUBTITLE (30) ===
+No subscription, no watermark
+
+=== PROMOTIONAL TEXT (170) ===
+Switch between the front and rear camera without cutting the recording. One video, no jumps. And your script in front of you the whole time, at the speed you set.
+
+=== DESCRIPTION (4000) ===
+Record yourself reading your script. Nothing to edit afterwards.
+
+Prompter puts the teleprompter on top of your iPhone's camera. Paste your text, hit record, and read. No glass rig, no second iPad, no Wi-Fi in the middle.
+
+SWITCH CAMERAS WITHOUT CUTTING
+Start on the rear camera, jump to the front mid-sentence, and go back. The take doesn't break: you get one continuous video with unbroken audio from start to finish. No more recording it twice and stitching it together later.
+
+BOTH CAMERAS AT ONCE
+Record with the rear and front cameras at the same time: one fills the frame and the other sits in a small preview you drag wherever it blocks nothing. When you stop, the two takes are merged into a single video.
+
+THE SCRIPT AT YOUR PACE
+Drag it with your finger to put it wherever you want. Tap once and it scrolls on its own; tap again and it stops. Speed, text size, width and line spacing all adjust while you record, and a line marks where you are.
+
+LOOK AT THE LENS, NOT THE SCRIPT
+Move the text box up until it sits right by the front camera lens. That is the difference between looking like you are reading and looking like you are talking, and it shows in the shot from the first second.
+
+REAL ZOOM
+On the rear camera, the buttons jump between your iPhone's actual lenses — ultra wide, main, telephoto — not a digital crop. A slider takes you anywhere in between. On the front camera, digital zoom with the same control.
+
+VERTICAL, READY TO POST
+Records 9:16 at 1080p. When you stop, the take goes straight to your Camera Roll and you edit it where you already edit.
+
+YOURS AND NOBODY ELSE'S
+No account, no subscription, no ads, no watermark. Prompter never connects to the internet: it works exactly the same in airplane mode. Your script and your videos never leave your phone.
+
+Built for people who talk to camera often: social video, training, presentations, sales messages.
+
+=== KEYWORDS (100, no spaces after commas) ===
+script,autocue,cue,speech,recorder,vlog,reels,shorts,creator,presentation,vertical,selfie,prompt
+
+=== SUPPORT URL ===
+https://eljommys.github.io/teleprompter_for_mobile/en/
+
+=== PRIVACY POLICY URL ===
+https://eljommys.github.io/teleprompter_for_mobile/en/privacy.html
+
+=== COPYRIGHT ===
+2026 Racks Labs
+
+=== WHAT'S NEW ===
+The reading line now moves. Raise it and you read closer to the front camera lens: it shows in the shot, because you stop looking slightly below it.
+
+You can now record with both cameras at once, with the second one in a preview you drag wherever you want.
+
+And the script tells you it can be tapped: one tap starts it, another stops it.

@@ -6,7 +6,7 @@
  * sanitización, docHeight compartido): aquí solo hay un aparato.
  */
 
-import type { TargetStabilizationMode } from 'react-native-vision-camera';
+import type { PhysicalDeviceType, TargetStabilizationMode } from 'react-native-vision-camera';
 
 import { t } from './i18n';
 
@@ -23,6 +23,12 @@ export type PrompterSettings = {
   opacity: number;
   /** Alto de la banda del guion, en fracción del alto de la pantalla. */
   panelHeight: number;
+  /**
+   * Ancho del texto dentro de la banda, en fracción del ancho de esta. Una
+   * columna estrecha se lee de un vistazo, sin barrer con los ojos de lado a
+   * lado, que es lo que delata que estás leyendo.
+   */
+  textWidth: number;
   /**
    * Dónde se coloca la banda entera en la pantalla: 0 la pega arriba del todo,
    * 1 la baja hasta los controles. Es lo que de verdad te acerca al objetivo de
@@ -45,6 +51,23 @@ export type PrompterSettings = {
   mirrorFront: boolean;
   /** Estabilización de vídeo. Ver `STABILIZATION_MODES`. */
   stabilization: StabilizationChoice;
+  /**
+   * Grabar con las dos cámaras a la vez: una llena el cuadro y la otra va en un
+   * recuadro encima. Pide un iPhone que admita sesiones multicámara.
+   */
+  dualCamera: boolean;
+  /** Esquina superior izquierda del recuadro, en fracción de la pantalla. */
+  pipX: number;
+  pipY: number;
+  /** Ancho del recuadro, en fracción del ancho de la pantalla. */
+  pipWidth: number;
+  /**
+   * Lentes que se le piden a la cámara trasera, con una cámara y con las dos.
+   * Menos lentes es una cámara que arranca antes y que no salta sola de una a
+   * otra al hacer zoom; el precio es quedarte sin esas paradas ópticas. Ver
+   * `LENS_TYPES`.
+   */
+  backLenses: LensChoice[];
   /** ¿Ya sabe el usuario que un toque en el guion lo pone en marcha? */
   tapHintSeen: boolean;
 };
@@ -68,6 +91,22 @@ export const STABILIZATION_MODES = [
 /** Uno de los modos que ofrece la app, que no son todos los de VisionCamera. */
 export type StabilizationChoice = (typeof STABILIZATION_MODES)[number];
 
+/**
+ * Las lentes que se pueden elegir, de más abierta a más cerrada.
+ *
+ * `PhysicalDeviceType` trae además las de profundidad —LiDAR, TrueDepth— y las
+ * de continuidad, que no son lentes entre las que encuadrar: no pintan nada en
+ * una lista donde eliges con qué óptica grabas.
+ */
+export const LENS_TYPES = [
+  'ultra-wide-angle',
+  'wide-angle',
+  'telephoto',
+] as const satisfies readonly PhysicalDeviceType[];
+
+/** Una de las lentes que ofrece la app. */
+export type LensChoice = (typeof LENS_TYPES)[number];
+
 export const DEFAULT_SETTINGS: PrompterSettings = {
   text: t('defaultScript'),
   fontSize: 30,
@@ -75,12 +114,20 @@ export const DEFAULT_SETTINGS: PrompterSettings = {
   lineHeight: 1.4,
   opacity: 0.45,
   panelHeight: 0.42,
+  textWidth: 1,
   panelTop: 0.5,
   readLine: 0.4,
   mirrorFront: true,
   // Sin `constraints` la sesión no pedía estabilización ninguna, y se notaba.
   // 'standard' es la que Apple describe como la buena para vídeo grabado.
   stabilization: 'standard',
+  dualCamera: false,
+  // Arriba a la derecha: es donde menos tapa el guion, que va centrado.
+  pipX: 0.64,
+  pipY: 0.08,
+  pipWidth: 0.3,
+  // Las tres: es lo que da las paradas ópticas de 0,5× / 1× / 3×.
+  backLenses: [...LENS_TYPES],
   tapHintSeen: false,
 };
 
@@ -90,6 +137,12 @@ export const LIMITS = {
   lineHeight: { min: 1, max: 2.2, step: 0.05 },
   opacity: { min: 0, max: 0.9, step: 0.05 },
   panelHeight: { min: 0.2, max: 0.75, step: 0.01 },
+  // Por debajo de la mitad el guion se convierte en una columna de palabras
+  // sueltas y cada línea dura un suspiro.
+  textWidth: { min: 0.5, max: 1, step: 0.01 },
+  // Más pequeño que un quinto de pantalla no se distingue quién sale; más
+  // grande que la mitad deja de ser un recuadro y tapa la toma principal.
+  pipWidth: { min: 0.2, max: 0.5, step: 0.01 },
   panelTop: { min: 0, max: 1, step: 0.01 },
   // El tope de arriba no es 0: con la línea pegada al borde no queda sitio
   // para leer la frase siguiente, que es justo para lo que sirve un

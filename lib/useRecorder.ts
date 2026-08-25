@@ -4,6 +4,7 @@ import { Alert } from 'react-native';
 import type { CameraVideoOutput, Recorder } from 'react-native-vision-camera';
 
 import { t } from './i18n';
+import { saveToLibrary } from './saveToLibrary';
 
 export type RecorderState = {
   isRecording: boolean;
@@ -42,12 +43,7 @@ export function useRecorder(videoOutput: CameraVideoOutput): RecorderState {
 
   const save = useCallback(async (filePath: string) => {
     try {
-      // `filePath` viene como ruta de sistema de ficheros, no como URL.
-      const uri = filePath.startsWith('file://') ? filePath : `file://${filePath}`;
-      // `MediaLibrary.createAssetAsync` sigue existiendo en los tipos de SDK 57,
-      // pero es un resto obsoleto que lanza en cuanto se llama. Lo que guarda de
-      // verdad es `Asset.create`.
-      await MediaLibrary.Asset.create(uri);
+      await saveToLibrary(filePath);
     } catch (error) {
       Alert.alert(t('recorder.saveFailed'), String(error));
     }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import type { ScrollView } from 'react-native';
 import {
+  runOnUI,
   scrollTo,
   useAnimatedReaction,
   useAnimatedRef,
@@ -36,8 +37,10 @@ export type ScriptScroll = {
   /** Los dos crudos, solo para el panel de depuración. */
   viewportHeight: SharedValue<number>;
   contentHeight: SharedValue<number>;
-  /** Arrancar o parar el avance automático. */
+  /** Arrancar o parar el avance automático, desde JS. */
   toggle: () => void;
+  /** Lo mismo, para llamar desde un gesto que ya corre en el hilo de UI. */
+  toggleOnUI: () => void;
   /** Volver al principio del guion. */
   rewind: () => void;
 };
@@ -137,8 +140,8 @@ export function useScriptScroll(speed: number, fontSize: number): ScriptScroll {
   );
 
   /**
-   * Se llama desde JS, no desde un worklet: el toque llega por el sistema de
-   * respuesta táctil de React Native y no por un gesto del hilo de UI.
+   * Arranca o para el avance. Es un worklet: lo llama el gesto del guion, que
+   * ya corre en el hilo de UI.
    *
    * No basta con invertir `playing`. Al posar el dedo sobre un guion que está
    * avanzando, iOS abre un arrastre para frenar el desplazamiento aunque no
@@ -147,14 +150,23 @@ export function useScriptScroll(speed: number, fontSize: number): ScriptScroll {
    * pararía nunca con un toque, solo arrastrando. Por eso se mira también si el
    * dedo aterrizó sobre un guion en marcha, y esa marca se consume aquí para
    * que un toque posterior sin arrastre no la herede.
+   *
+   * Y la cuenta se hace en el hilo de UI justamente porque es ahí donde
+   * `onBeginDrag` escribe esas marcas: leerlas desde JS podía devolver las de
+   * antes y concluir que el guion estaba parado cuando no lo estaba.
    */
-  const toggle = useCallback(() => {
+  const toggleOnUI = useCallback(() => {
+    'worklet';
     const wasPlaying = touchStartedWhilePlaying.value || playing.value;
     touchStartedWhilePlaying.value = false;
     // Al final del guion, un toque lo rebobina en vez de no hacer nada.
     if (position.value >= 1) position.value = 0;
     playing.value = !wasPlaying;
   }, [position, playing, touchStartedWhilePlaying]);
+
+  const toggle = useCallback(() => {
+    runOnUI(toggleOnUI)();
+  }, [toggleOnUI]);
 
   const rewind = useCallback(() => {
     position.value = 0;
@@ -174,6 +186,7 @@ export function useScriptScroll(speed: number, fontSize: number): ScriptScroll {
       viewportHeight,
       contentHeight,
       toggle,
+      toggleOnUI,
       rewind,
     }),
     [
@@ -187,6 +200,7 @@ export function useScriptScroll(speed: number, fontSize: number): ScriptScroll {
       viewportHeight,
       contentHeight,
       toggle,
+      toggleOnUI,
       rewind,
     ],
   );

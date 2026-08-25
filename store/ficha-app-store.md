@@ -127,6 +127,11 @@ Este campo se puede cambiar sin pasar por revisión. Guárdatelo para novedades.
 > solo; tócalo otra y para. La velocidad, el tamaño de letra y el interlineado se
 > ajustan mientras grabas, y una línea marca por dónde vas leyendo.
 >
+> MIRA A CÁMARA, NO AL GUION
+> Sube la caja del texto hasta pegarla al objetivo de la cámara frontal. Esa es
+> la diferencia entre parecer que lees y parecer que hablas, y se nota en el
+> plano desde el primer segundo.
+>
 > ZOOM DE VERDAD
 > En la cámara trasera, los botones saltan entre las lentes reales de tu iPhone
 > —gran angular, principal, teleobjetivo—, no es un recorte digital. Un
