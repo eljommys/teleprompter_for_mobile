@@ -19,9 +19,22 @@ un solo aparato.
 - Al parar, la toma va directa a tu Carrete.
 - **La línea de lectura se mueve**: subirla te acerca al objetivo de la cámara
   frontal, que es lo que hace que parezca que miras a cámara.
+- **Graba con las dos cámaras a la vez**: una llena el cuadro y la otra va en un
+  recuadro que arrastras donde quieras. Puedes girar y mover el recuadro en
+  mitad de la toma, y el vídeo enseña cada cambio donde lo hiciste. Al parar, las
+  dos tomas se funden en un solo fichero.
 - Estabilización de vídeo elegible, de ninguna a máxima.
-- Texto, tamaño de letra, velocidad, interlineado, alto y opacidad del panel:
-  todo ajustable, y se queda guardado.
+- Texto, ancho y tamaño de letra, velocidad, interlineado, alto y opacidad del
+  panel: todo ajustable, y se queda guardado.
+
+## Cómo se ve
+
+| | | |
+|:-:|:-:|:-:|
+| ![Cambio de cámara](docs/capturas/1-cambio-camara.webp) | ![Doble cámara](docs/capturas/2-doble-camara.webp) | ![Ajustes](docs/capturas/3-ajustes.webp) |
+| Gira sin cortar la toma | Las dos cámaras a la vez | Todo ajustable |
+| ![Ancho del texto](docs/capturas/4-texto.webp) | ![Recuadro movible](docs/capturas/5-miniatura.webp) | |
+| El guion a tu medida | El recuadro, donde quieras | |
 
 ## Arrancar
 

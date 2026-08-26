@@ -42,3 +42,7 @@ yarn-error.*
 
 # Artefactos de la subida a App Store (archivo y .ipa).
 build/
+
+# Capturas para la ficha de la tienda: pesan mucho y se rehacen en cada versión.
+# Las del README van en docs/capturas, en webp.
+store/appstore/**/capturas-*/
