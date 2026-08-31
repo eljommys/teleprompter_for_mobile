@@ -2,7 +2,7 @@
   "expo": {
     "name": "Prompter",
     "slug": "teleprompter_for_mobile",
-    "version": "1.2.0",
+    "version": "1.3.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -21,7 +21,7 @@
         "NSPhotoLibraryAddUsageDescription": "To save your takes to your Photos.",
         "ITSAppUsesNonExemptEncryption": false
       },
-      "buildNumber": "6"
+      "buildNumber": "1"
     },
     "android": {
       "package": "com.rackslabs.prompter",
