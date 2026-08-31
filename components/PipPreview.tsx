@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated, {
   runOnJS,
   useAnimatedStyle,
@@ -27,8 +27,12 @@ type Props = {
   y: number;
   /** Ancho del recuadro, en fracción del ancho del lienzo. */
   width: number;
-  /** Redondeo de las esquinas, en px. */
+  /** Redondeo, en fracción del lado corto: al 100% sale círculo o cápsula. */
   radius: number;
+  /** Proporción alto/ancho del recuadro. */
+  aspect: number;
+  /** Sombra, 0 = ninguna. */
+  shadow: number;
   /** Se llama al soltar: es lo que se guarda en los ajustes. */
   onMoved: (position: { x: number; y: number }) => void;
   /**
@@ -44,9 +48,6 @@ type Props = {
 /** Cada cuánto se apunta la posición mientras se arrastra, en ms. */
 const TRACK_EVERY = 100;
 
-/** Proporción del recuadro. Vertical, como graba la app. */
-const ASPECT = 16 / 9;
-
 export function PipPreview({
   previewOutput,
   canvas,
@@ -54,11 +55,16 @@ export function PipPreview({
   y,
   width,
   radius,
+  aspect,
+  shadow,
   onMoved,
   onMoving,
 }: Props) {
   const boxWidth = canvas.width * width;
-  const boxHeight = boxWidth * ASPECT;
+  const boxHeight = boxWidth * aspect;
+  // El redondeo va en fracción del lado corto, así que el tope real es su mitad:
+  // ahí las esquinas se tocan y el recuadro queda redondo del todo.
+  const boxRadius = (Math.min(boxWidth, boxHeight) / 2) * radius;
 
   // El arrastre vive en el hilo de UI para que siga al dedo sin repintar; a
   // React solo se le cuenta dónde se ha quedado al soltar.
@@ -164,12 +170,27 @@ export function PipPreview({
   return (
     <GestureDetector gesture={drag}>
       <Animated.View
-        style={[styles.box, { width: boxWidth, height: boxHeight, borderRadius: radius }, boxStyle]}>
-        <NativePreviewView
-          previewOutput={previewOutput}
-          resizeMode="cover"
-          style={StyleSheet.absoluteFill}
-        />
+        style={[
+          styles.box,
+          {
+            width: boxWidth,
+            height: boxHeight,
+            borderRadius: boxRadius,
+            // La sombra no puede ir en la misma vista que recorta: `overflow`
+            // se la come. Por eso va aquí y la imagen se recorta dentro.
+            shadowOpacity: shadow,
+            shadowRadius: 18 * shadow,
+            shadowOffset: { width: 0, height: 8 * shadow },
+          },
+          boxStyle,
+        ]}>
+        <View style={[styles.clip, { borderRadius: boxRadius }]}>
+          <NativePreviewView
+            previewOutput={previewOutput}
+            resizeMode="cover"
+            style={StyleSheet.absoluteFill}
+          />
+        </View>
       </Animated.View>
     </GestureDetector>
   );
@@ -180,9 +201,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     left: 0,
-    // El redondeo llega por prop. Es solo de la vista previa: el montaje se hace
-    // con una exportación de AVFoundation, que compone rectángulos y no sabe
-    // recortar cantos, así que en el fichero el recuadro sale recto.
+    shadowColor: '#000',
+  },
+  /** Recorta la imagen a la forma del recuadro. Va aparte de la sombra. */
+  clip: {
+    flex: 1,
     overflow: 'hidden',
     borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.35)',

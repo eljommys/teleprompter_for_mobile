@@ -40,7 +40,7 @@ import { useDualRecorder } from './lib/useDualRecorder';
 import { useRecorder } from './lib/useRecorder';
 import { useScriptScroll } from './lib/useScriptScroll';
 import { useSettings } from './lib/useSettings';
-import { LENS_TYPES, STABILIZATION_MODES } from './lib/prompterSettings';
+import { LENS_TYPES, pipAspect, STABILIZATION_MODES } from './lib/prompterSettings';
 import { buildZoomScale, clampZoom, type ZoomScale } from './lib/zoom';
 
 /**
@@ -102,6 +102,9 @@ function Studio() {
       x: settings.pipX,
       y: settings.pipY,
       width: settings.pipWidth,
+      aspect: pipAspect(settings.pipShape),
+      radius: settings.pipRadius,
+      shadow: settings.pipShadow,
     },
     screenAspect: screenWidth / screenHeight,
   });
@@ -447,6 +450,8 @@ function Studio() {
             y={settings.pipY}
             width={settings.pipWidth}
             radius={settings.pipRadius}
+            aspect={pipAspect(settings.pipShape)}
+            shadow={settings.pipShadow}
             onMoved={({ x, y }) => update({ pipX: x, pipY: y })}
             // Mientras se arrastra, la grabación apunta el recorrido; a los
             // ajustes solo va la posición final, que es la que hay que guardar.

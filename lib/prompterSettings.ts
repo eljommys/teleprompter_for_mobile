@@ -68,8 +68,15 @@ export type PrompterSettings = {
   pipY: number;
   /** Ancho del recuadro, en fracción del ancho de la pantalla. */
   pipWidth: number;
-  /** Redondeo de las esquinas del recuadro, en px. */
+  /**
+   * Redondeo de las esquinas del recuadro, en fracción de su lado corto.
+   * Al 100% y con el recuadro cuadrado sale un círculo.
+   */
   pipRadius: number;
+  /** Forma del recuadro. Ver `PIP_SHAPES`. */
+  pipShape: PipShape;
+  /** Sombra bajo el recuadro, 0 = ninguna. */
+  pipShadow: number;
   /**
    * Lentes que se le piden a la cámara trasera, con una cámara y con las dos.
    * Menos lentes es una cámara que arranca antes y que no salta sola de una a
@@ -116,6 +123,20 @@ export const LENS_TYPES = [
 /** Una de las lentes que ofrece la app. */
 export type LensChoice = (typeof LENS_TYPES)[number];
 
+/**
+ * Formas del recuadro de la segunda cámara.
+ *
+ * `portrait` es la de la app, 9:16, y encaja con lo que graba. `square` recorta
+ * a 1:1, que con el redondeo al máximo da un círculo.
+ */
+export const PIP_SHAPES = ['portrait', 'square'] as const;
+export type PipShape = (typeof PIP_SHAPES)[number];
+
+/** Proporción alto/ancho del recuadro para cada forma. */
+export function pipAspect(shape: PipShape): number {
+  return shape === 'square' ? 1 : 16 / 9;
+}
+
 export const DEFAULT_SETTINGS: PrompterSettings = {
   prompterEnabled: true,
   text: t('defaultScript'),
@@ -136,7 +157,9 @@ export const DEFAULT_SETTINGS: PrompterSettings = {
   pipX: 0.64,
   pipY: 0.08,
   pipWidth: 0.3,
-  pipRadius: 14,
+  pipRadius: 0.08,
+  pipShape: 'portrait',
+  pipShadow: 0.35,
   // Las tres: es lo que da las paradas ópticas de 0,5× / 1× / 3×.
   backLenses: [...LENS_TYPES],
   tapHintSeen: false,
@@ -154,8 +177,10 @@ export const LIMITS = {
   // Más pequeño que un quinto de pantalla no se distingue quién sale; más
   // grande que la mitad deja de ser un recuadro y tapa la toma principal.
   pipWidth: { min: 0.2, max: 0.5, step: 0.01 },
-  // Hasta 40 px las esquinas se comen el recuadro entero por los lados cortos.
-  pipRadius: { min: 0, max: 40, step: 1 },
+  // Al máximo, el redondeo vale medio lado corto: las esquinas se tocan y el
+  // recuadro queda en círculo —si es cuadrado— o en cápsula.
+  pipRadius: { min: 0, max: 1, step: 0.01 },
+  pipShadow: { min: 0, max: 1, step: 0.05 },
   panelTop: { min: 0, max: 1, step: 0.01 },
   // El tope de arriba no es 0: con la línea pegada al borde no queda sitio
   // para leer la frase siguiente, que es justo para lo que sirve un

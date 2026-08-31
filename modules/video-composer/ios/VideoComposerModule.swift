@@ -43,6 +43,12 @@ struct ComposeSegment: Record {
   @Field var y: Double = 0
   /** Ancho del recuadro, en fracción del ancho de la pantalla. */
   @Field var width: Double = 0.3
+  /** Proporción alto/ancho: 16/9 vertical, 1 cuadrado. */
+  @Field var aspect: Double = 16.0 / 9.0
+  /** Redondeo, en fracción del lado corto. Al 1, círculo o cápsula. */
+  @Field var radius: Double = 0
+  /** Sombra bajo el recuadro. */
+  @Field var shadow: Double = 0
 }
 
 struct ComposeOptions: Record {
@@ -169,70 +175,25 @@ private enum Composer {
      */
     let source = first.backIsBackground ? back.size : front.size
     let canvas = even(CGSize(width: source.height * SHOT_ASPECT, height: source.height))
-    let visible = visibleFraction(canvas: canvas, screenAspect: options.screenAspect)
 
-    var instructions: [AVMutableVideoCompositionInstruction] = []
-    for (index, segment) in options.segments.enumerated() {
-      let start = CMTime(seconds: max(0, segment.start), preferredTimescale: 600)
-      let end =
-        index + 1 < options.segments.count
-        ? CMTime(seconds: max(0, options.segments[index + 1].start), preferredTimescale: 600)
-        : duration
-      // Un tramo que empieza después de que acabe la toma —girar justo al
-      // parar— no pinta nada y solo daría un rango inválido.
-      guard start < duration, end > start else { continue }
-
-      let background = segment.backIsBackground ? back : front
-      let overlay = segment.backIsBackground ? front : back
-
-      let backgroundInstruction = AVMutableVideoCompositionLayerInstruction(
-        assetTrack: background.track)
-      backgroundInstruction.setTransform(fill(background, canvas: canvas), at: .zero)
-
-      let placed = box(overlay, canvas: canvas, segment: segment, visible: visible)
-      let overlayInstruction = AVMutableVideoCompositionLayerInstruction(assetTrack: overlay.track)
-
-      // Si el tramo siguiente es el mismo encuadre moviéndose —no un cambio de
-      // cámara—, se interpola de aquí a allí en vez de dar el salto. Es lo que
-      // convierte los puntos que apunta el arrastre en un movimiento continuo:
-      // el recuadro acompaña al dedo en el vídeo igual que lo hizo en pantalla.
-      let following = index + 1 < options.segments.count ? options.segments[index + 1] : nil
-      let ramp = following.flatMap { next -> ComposeSegment? in
-        next.backIsBackground == segment.backIsBackground ? next : nil
-      }
-
-      if let ramp {
-        let target = box(overlay, canvas: canvas, segment: ramp, visible: visible)
-        let span = CMTimeRange(start: start, end: min(end, duration))
-        overlayInstruction.setTransformRamp(
-          fromStart: placed.transform, toEnd: target.transform, timeRange: span)
-        // El recorte viaja con la transformación: si se quedara fijo, el hueco
-        // no acompañaría a la imagen y el recuadro iría dejando recortes por el
-        // camino.
-        overlayInstruction.setCropRectangleRamp(
-          fromStartCropRectangle: placed.crop, toEndCropRectangle: target.crop, timeRange: span)
-      } else {
-        overlayInstruction.setTransform(placed.transform, at: .zero)
-        // Sin recorte, la toma del recuadro se saldría de su hueco y taparía el
-        // fondo alrededor: se agranda hasta llenarlo —como la vista previa, que
-        // va en `cover`— y lo que sobra hay que quitarlo.
-        overlayInstruction.setCropRectangle(placed.crop, at: .zero)
-      }
-
-      let instruction = AVMutableVideoCompositionInstruction()
-      instruction.timeRange = CMTimeRange(start: start, end: min(end, duration))
-      // El primero de la lista es el que queda delante, así que el recuadro va
-      // antes que el fondo aunque se dibuje encima.
-      instruction.layerInstructions = [overlayInstruction, backgroundInstruction]
-      instructions.append(instruction)
-    }
-
-    if instructions.isEmpty { throw ComposerError.noSegments }
+    // Una sola instrucción para toda la toma: el compositor calcula la
+    // geometría de cada fotograma a partir de los tramos, en vez de repartirla
+    // en capas y rampas. Es lo que permite redondear y sombrear el recuadro,
+    // que el compositor de serie no sabe hacer.
+    let instruction = PipInstruction(
+      timeRange: range,
+      backTrackID: backSlot.trackID,
+      frontTrackID: frontSlot.trackID,
+      backTransform: back.transform,
+      frontTransform: front.transform,
+      segments: options.segments,
+      screenAspect: options.screenAspect)
 
     let videoComposition = AVMutableVideoComposition()
     videoComposition.renderSize = canvas
     videoComposition.frameDuration = CMTime(value: 1, timescale: 30)
-    videoComposition.instructions = instructions
+    videoComposition.customVideoCompositorClass = PipCompositor.self
+    videoComposition.instructions = [instruction]
 
     let outputURL = fileURL(options.output)
     try? FileManager.default.removeItem(at: outputURL)
@@ -267,94 +228,8 @@ private enum Composer {
     }
   }
 
-  /** La toma que llena el cuadro, estirada si hiciera falta para cubrirlo. */
-  private static func fill(_ layer: Layer, canvas: CGSize) -> CGAffineTransform {
-    guard layer.size.width > 0, layer.size.height > 0 else { return layer.transform }
-    let scale = max(canvas.width / layer.size.width, canvas.height / layer.size.height)
-    // Centrada: si sobra por algún lado, que sobre por igual a los dos.
-    let dx = (canvas.width - layer.size.width * scale) / 2
-    let dy = (canvas.height - layer.size.height * scale) / 2
-    return
-      layer.transform
-      .concatenating(CGAffineTransform(scaleX: scale, y: scale))
-      .concatenating(CGAffineTransform(translationX: dx, y: dy))
-  }
 
-  /**
-   * La toma del recuadro, a su tamaño y en su sitio.
-   *
-   * Devuelve además el rectángulo al que hay que recortarla. El recuadro tiene
-   * la forma de la app (9:16) pase lo que pase, así que la toma se agranda hasta
-   * llenarlo y se corta lo que sobresale: es lo mismo que hace la vista previa
-   * con `cover`, y lo que evita que el recuadro salga con una forma en pantalla
-   * y otra en el fichero.
-   */
-  private static func box(
-    _ layer: Layer, canvas: CGSize, segment: ComposeSegment,
-    visible: (width: Double, height: Double)
-  ) -> (transform: CGAffineTransform, crop: CGRect) {
-    // De coordenadas de pantalla a coordenadas de lienzo. La vista previa va en
-    // `cover`, o sea que de la toma solo se ve la parte central que cabe en la
-    // pantalla; el resto está grabándose fuera de plano. Se traduce la fracción
-    // vista a la fracción real y así el recuadro cae en el fichero justo donde
-    // se dejó con el dedo.
-    let width = segment.width * visible.width
-    let x = (1 - visible.width) / 2 + segment.x * visible.width
-    let y = (1 - visible.height) / 2 + segment.y * visible.height
 
-    // El hueco tiene la forma de la app, no la del sensor.
-    let size = CGSize(width: canvas.width * width, height: canvas.width * width / SHOT_ASPECT)
-
-    // Se vuelve a encajar dentro del lienzo aunque venga de fuera bien puesto:
-    // la posición se guardó con un recuadro de otro tamaño, y basta con
-    // agrandarlo después para que lo que cabía deje de caber. En pantalla el
-    // arrastre ya lo frena, pero aquí es donde se decide lo que queda grabado.
-    let position = CGPoint(
-      x: min(max(0, canvas.width * x), max(0, canvas.width - size.width)),
-      y: min(max(0, canvas.height * y), max(0, canvas.height - size.height)))
-
-    guard layer.size.width > 0, layer.size.height > 0 else {
-      return (layer.transform, CGRect(origin: position, size: size))
-    }
-
-    // Se agranda hasta llenar el hueco por los dos lados y lo que sobra se
-    // reparte a partes iguales, que es lo que hace `cover`.
-    let scale = max(size.width / layer.size.width, size.height / layer.size.height)
-    let dx = position.x + (size.width - layer.size.width * scale) / 2
-    let dy = position.y + (size.height - layer.size.height * scale) / 2
-
-    let transform =
-      layer.transform
-      .concatenating(CGAffineTransform(scaleX: scale, y: scale))
-      .concatenating(CGAffineTransform(translationX: dx, y: dy))
-
-    // El recorte se mide sobre el fotograma de origen, no sobre el lienzo, así
-    // que el hueco se lleva hacia atrás deshaciendo la transformación. Como
-    // aquí solo hay giros de noventa grados, escalas y traslaciones, un
-    // rectángulo sigue siendo un rectángulo y la cuenta es exacta.
-    let crop = CGRect(origin: position, size: size).applying(transform.inverted())
-
-    return (transform, crop)
-  }
-
-  /**
-   * Qué parte del lienzo se ve en la pantalla, en fracciones de 0 a 1.
-   *
-   * Con `cover` la toma se agranda hasta cubrir la pantalla y sobra por un
-   * lado: en un iPhone, que es más estirado que el 9:16 grabado, sobra por los
-   * lados y solo se ve el 82% del ancho. Sin proporción de pantalla que valga
-   * —o si coincide con la del vídeo— se ve entero y esto devuelve 1 y 1.
-   */
-  private static func visibleFraction(canvas: CGSize, screenAspect: Double) -> (
-    width: Double, height: Double
-  ) {
-    guard screenAspect > 0, canvas.height > 0 else { return (1, 1) }
-    let canvasAspect = canvas.width / canvas.height
-    return (
-      width: min(1, screenAspect / canvasAspect),
-      height: min(1, canvasAspect / screenAspect)
-    )
-  }
 
   /**
    * Deja la pista derecha y dice cuánto ocupa ya girada.

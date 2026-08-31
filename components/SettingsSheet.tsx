@@ -2,7 +2,7 @@
 // secas mete en el bundle las nueve tipografías de iconos, y aquí se usa una.
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Slider from '@react-native-community/slider';
-import { useCallback, useEffect, type ComponentProps } from 'react';
+import { useCallback, useEffect, useState, type ComponentProps } from 'react';
 import {
   KeyboardAvoidingView,
   Modal,
@@ -21,6 +21,7 @@ import { formatDecimal, t } from '../lib/i18n';
 import {
   LENS_TYPES,
   LIMITS,
+  PIP_SHAPES,
   type LensChoice,
   type PrompterSettings,
   type StabilizationChoice,
@@ -60,6 +61,7 @@ export function SettingsSheet({
   onRewind,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const [editing, setEditing] = useState(false);
 
   // Mientras se arrastra un slider la hoja casi desaparece: un ajuste del guion
   // solo se juzga viéndolo sobre la cámara, y con el panel delante no se ve.
@@ -121,20 +123,31 @@ export function SettingsSheet({
                 />
               </View>
 
-              <TextInput
-                style={styles.textArea}
-                multiline
-                value={settings.text}
-                onChangeText={(text) => update({ text })}
-                placeholder={t('settings.placeholder')}
-                placeholderTextColor="#666"
-                textAlignVertical="top"
-              />
+              {/* Con el guion apagado no se esconden los ajustes por capricho:
+                  siguen guardados y vuelven tal cual al encenderlo. Lo que se
+                  quita es el sitio que ocupaban, que no sirve de nada si no hay
+                  guion en pantalla. */}
+              {settings.prompterEnabled ? (
+                <>
+                  {/* Un recuadro que se pulsa para editar, no un campo abierto.
+                      Abierto ocupaba media hoja y, al arrastrar para bajar por
+                      los ajustes, el dedo caía dentro y saltaba el teclado. */}
+                  <Pressable style={styles.scriptPreview} onPress={() => setEditing(true)}>
+                    <Text style={styles.scriptText} numberOfLines={3}>
+                      {settings.text.trim().length > 0
+                        ? settings.text
+                        : t('settings.emptyScript')}
+                    </Text>
+                    <View style={styles.scriptEdit}>
+                      <MaterialCommunityIcons name="pencil" size={14} color={ACCENT} />
+                      <Text style={styles.scriptEditText}>{t('settings.editScript')}</Text>
+                    </View>
+                  </Pressable>
 
-              <Pressable style={styles.secondaryButton} onPress={onRewind}>
-                <MaterialCommunityIcons name="skip-backward" size={15} color={ACCENT} />
-                <Text style={styles.secondaryButtonText}>{t('settings.rewind')}</Text>
-              </Pressable>
+                  <Pressable style={styles.secondaryButton} onPress={onRewind}>
+                    <MaterialCommunityIcons name="skip-backward" size={15} color={ACCENT} />
+                    <Text style={styles.secondaryButtonText}>{t('settings.rewind')}</Text>
+                  </Pressable>
 
               <LabeledSlider
                 icon="format-size"
@@ -231,6 +244,9 @@ export function SettingsSheet({
                 onSlidingComplete={endPeek}
               />
 
+                </>
+              ) : null}
+
               <SectionLabel icon="camera-outline" label={t('settings.section.camera')} />
 
               <View style={styles.sliderRow}>
@@ -300,19 +316,58 @@ export function SettingsSheet({
               ) : null}
 
               {settings.dualCamera && supportsDualCamera ? (
-                <LabeledSlider
-                  icon="rounded-corner"
-                  label={t('settings.pipRadius')}
-                  hint={t('settings.pipRadiusHint')}
-                  value={settings.pipRadius}
-                  limits={LIMITS.pipRadius}
-                  format={(value) => `${Math.round(value)} px`}
-                  minLabel={t('settings.pipRadius.square')}
-                  maxLabel={t('settings.pipRadius.round')}
-                  onChange={(pipRadius) => update({ pipRadius })}
-                  onSlidingStart={beginPeek}
-                  onSlidingComplete={endPeek}
-                />
+                <>
+                  <View style={styles.sliderRow}>
+                    <View style={styles.labelGroup}>
+                      <MaterialCommunityIcons name="crop-square" size={17} color="#8e8e93" />
+                      <Text style={styles.label}>{t('settings.pipShape')}</Text>
+                    </View>
+                    <View style={styles.segmented}>
+                      {PIP_SHAPES.map((shape) => {
+                        const active = settings.pipShape === shape;
+                        return (
+                          <Pressable
+                            key={shape}
+                            style={[styles.segment, active && styles.segmentActive]}
+                            onPress={() => update({ pipShape: shape })}>
+                            <Text
+                              style={[styles.segmentText, active && styles.segmentTextActive]}
+                              numberOfLines={1}>
+                              {t(`settings.pipShape.${shape}`)}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                    <Text style={styles.hint}>{t('settings.pipShapeHint')}</Text>
+                  </View>
+
+                  <LabeledSlider
+                    icon="rounded-corner"
+                    label={t('settings.pipRadius')}
+                    value={settings.pipRadius}
+                    limits={LIMITS.pipRadius}
+                    format={percent}
+                    minLabel={t('settings.pipRadius.square')}
+                    maxLabel={t('settings.pipRadius.round')}
+                    onChange={(pipRadius) => update({ pipRadius })}
+                    onSlidingStart={beginPeek}
+                    onSlidingComplete={endPeek}
+                  />
+
+                  <LabeledSlider
+                    icon="box-shadow"
+                    label={t('settings.pipShadow')}
+                    value={settings.pipShadow}
+                    limits={LIMITS.pipShadow}
+                    format={percent}
+                    minLabel={t('settings.pipShadow.none')}
+                    maxLabel={t('settings.pipShadow.strong')}
+                    onChange={(pipShadow) => update({ pipShadow })}
+                    onSlidingStart={beginPeek}
+                    onSlidingComplete={endPeek}
+                  />
+                </>
               ) : null}
 
               {availableLenses.length > 1 ? (
@@ -376,6 +431,29 @@ export function SettingsSheet({
           </View>
         </KeyboardAvoidingView>
       </Animated.View>
+
+      {/* Editar el guion ocurre aquí y no en la hoja: así el campo tiene toda la
+          pantalla, que es lo que pide escribir, y en los ajustes no estorba. */}
+      <Modal visible={editing} animationType="slide" onRequestClose={() => setEditing(false)}>
+        <KeyboardAvoidingView behavior="padding" style={styles.editor}>
+          <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
+            <Text style={styles.title}>{t('settings.editScript')}</Text>
+            <Pressable onPress={() => setEditing(false)} hitSlop={10}>
+              <Text style={styles.done}>{t('settings.editScriptDone')}</Text>
+            </Pressable>
+          </View>
+          <TextInput
+            style={[styles.editorInput, { marginBottom: insets.bottom }]}
+            multiline
+            autoFocus
+            value={settings.text}
+            onChangeText={(text) => update({ text })}
+            placeholder={t('settings.placeholder')}
+            placeholderTextColor="#666"
+            textAlignVertical="top"
+          />
+        </KeyboardAvoidingView>
+      </Modal>
     </Modal>
   );
 }
@@ -542,14 +620,37 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.6,
   },
-  textArea: {
-    minHeight: 180,
+  scriptPreview: {
     backgroundColor: '#1c1c1e',
     borderRadius: 12,
     padding: 14,
+    gap: 10,
+  },
+  scriptText: {
     color: '#fff',
     fontSize: 15,
     lineHeight: 21,
+  },
+  scriptEdit: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  scriptEditText: {
+    color: ACCENT,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  editor: {
+    flex: 1,
+    backgroundColor: '#111',
+  },
+  editorInput: {
+    flex: 1,
+    padding: 20,
+    color: '#fff',
+    fontSize: 16,
+    lineHeight: 23,
   },
   secondaryButton: {
     flexDirection: 'row',

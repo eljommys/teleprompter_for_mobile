@@ -63,9 +63,18 @@ const es = {
   'settings.pipRadius': 'Esquinas del recuadro',
   'settings.pipRadius.square': 'Rectas',
   'settings.pipRadius.round': 'Redondas',
-  'settings.pipRadiusHint':
-    'Solo en pantalla: el montaje del vídeo compone rectángulos y las esquinas ' +
-    'salen rectas en el fichero.',
+  'settings.pipShape': 'Forma del recuadro',
+  'settings.pipShape.portrait': 'Vertical',
+  'settings.pipShape.square': 'Cuadrado',
+  'settings.pipShapeHint':
+    'Cuadrado y con las esquinas al máximo, el recuadro sale redondo. Todo esto ' +
+    'va también en el vídeo guardado.',
+  'settings.pipShadow': 'Sombra del recuadro',
+  'settings.pipShadow.none': 'Ninguna',
+  'settings.pipShadow.strong': 'Marcada',
+  'settings.editScript': 'Editar el guion',
+  'settings.editScriptDone': 'Listo',
+  'settings.emptyScript': 'Sin guion todavía',
   'recorder.savingTitle': 'Guardando el vídeo',
   'recorder.savingBody': 'Se están juntando las dos tomas en un solo vídeo. No cierres la app.',
   'settings.lenses': 'Lentes de la cámara trasera',
@@ -155,9 +164,18 @@ const en: Record<TextKey, string> = {
   'settings.pipRadius': 'Box corners',
   'settings.pipRadius.square': 'Square',
   'settings.pipRadius.round': 'Round',
-  'settings.pipRadiusHint':
-    'On screen only: the video is composed from rectangles, so the corners come ' +
-    'out square in the file.',
+  'settings.pipShape': 'Box shape',
+  'settings.pipShape.portrait': 'Portrait',
+  'settings.pipShape.square': 'Square',
+  'settings.pipShapeHint':
+    'Square with the corners at maximum makes it a circle. All of this shows up ' +
+    'in the saved video too.',
+  'settings.pipShadow': 'Box shadow',
+  'settings.pipShadow.none': 'None',
+  'settings.pipShadow.strong': 'Strong',
+  'settings.editScript': 'Edit the script',
+  'settings.editScriptDone': 'Done',
+  'settings.emptyScript': 'No script yet',
   'recorder.savingTitle': 'Saving the video',
   'recorder.savingBody': 'Both takes are being merged into a single video. Do not close the app.',
   'settings.lenses': 'Back camera lenses',

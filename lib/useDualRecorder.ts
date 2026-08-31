@@ -41,6 +41,10 @@ export type DualShot = {
   x: number;
   y: number;
   width: number;
+  /** Su forma: proporción, redondeo y sombra. Va al montaje tal cual. */
+  aspect: number;
+  radius: number;
+  shadow: number;
 };
 
 type Options = {
@@ -143,7 +147,10 @@ export function useDualRecorder({ back, front, shot, screenAspect }: Options): D
       last.backIsBackground === shotNow.backIsBackground &&
       last.x === shotNow.x &&
       last.y === shotNow.y &&
-      last.width === shotNow.width
+      last.width === shotNow.width &&
+      last.aspect === shotNow.aspect &&
+      last.radius === shotNow.radius &&
+      last.shadow === shotNow.shadow
     ) {
       return;
     }
@@ -156,7 +163,17 @@ export function useDualRecorder({ back, front, shot, screenAspect }: Options): D
   useEffect(() => {
     if (!isRecording) return;
     remember(latestShot.current);
-  }, [isRecording, remember, shot.backIsBackground, shot.x, shot.y, shot.width]);
+  }, [
+    isRecording,
+    remember,
+    shot.backIsBackground,
+    shot.x,
+    shot.y,
+    shot.width,
+    shot.aspect,
+    shot.radius,
+    shot.shadow,
+  ]);
 
   /**
    * El recorrido del recuadro mientras el dedo lo mueve.

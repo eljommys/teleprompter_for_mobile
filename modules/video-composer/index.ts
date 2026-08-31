@@ -11,6 +11,12 @@ export type ComposeSegment = {
   y: number;
   /** Ancho del recuadro, en fracción del ancho de la pantalla. */
   width: number;
+  /** Proporción alto/ancho del recuadro: 16/9 vertical, 1 cuadrado. */
+  aspect: number;
+  /** Redondeo, en fracción del lado corto. Al 1 sale círculo o cápsula. */
+  radius: number;
+  /** Sombra bajo el recuadro, 0 = ninguna. */
+  shadow: number;
 };
 
 export type ComposeOptions = {
