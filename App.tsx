@@ -424,7 +424,7 @@ function Studio() {
         ) : null}
 
         <View style={[styles.band, { top: bandTop }]} pointerEvents="box-none">
-          {ready ? (
+          {ready && settings.prompterEnabled ? (
             <Prompter
               settings={settings}
               scroll={scroll}
@@ -446,7 +446,11 @@ function Studio() {
             x={settings.pipX}
             y={settings.pipY}
             width={settings.pipWidth}
+            radius={settings.pipRadius}
             onMoved={({ x, y }) => update({ pipX: x, pipY: y })}
+            // Mientras se arrastra, la grabación apunta el recorrido; a los
+            // ajustes solo va la posición final, que es la que hay que guardar.
+            onMoving={dualRecorder.trackMove}
           />
         ) : null}
 
@@ -478,10 +482,15 @@ function Studio() {
         {/* Fundir las dos tomas es una exportación entera y tarda lo suyo. Sin
             avisar, el rato entre parar y ver el vídeo en el Carrete parece que
             la grabación se ha perdido. */}
+        {/* A pantalla completa y capturando los toques: fundir las dos tomas es
+            una exportación entera, y mientras tanto no hay nada que tocar. Antes
+            era un aviso pequeño arriba y se colaba el impulso de darle otra vez
+            al botón. */}
         {isComposing ? (
-          <View pointerEvents="none" style={[styles.composing, { top: insets.top + 12 }]}>
-            <ActivityIndicator color="#fff" size="small" />
-            <Text style={styles.composingText}>{t('recorder.composing')}</Text>
+          <View style={styles.saving}>
+            <ActivityIndicator color="#fff" size="large" />
+            <Text style={styles.savingTitle}>{t('recorder.savingTitle')}</Text>
+            <Text style={styles.savingBody}>{t('recorder.savingBody')}</Text>
           </View>
         ) : null}
 
@@ -569,20 +578,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     textAlign: 'center',
   },
-  composing: {
+  saving: {
     position: 'absolute',
-    alignSelf: 'center',
-    flexDirection: 'row',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    gap: 14,
+    paddingHorizontal: 48,
+    backgroundColor: 'rgba(0, 0, 0, 0.82)',
   },
-  composingText: {
+  savingTitle: {
     color: '#fff',
+    fontSize: 17,
+    fontWeight: '700',
+  },
+  savingBody: {
+    color: '#8e8e93',
     fontSize: 13,
-    fontWeight: '600',
+    textAlign: 'center',
+    lineHeight: 18,
   },
 });

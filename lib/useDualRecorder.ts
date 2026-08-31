@@ -26,6 +26,12 @@ export type DualRecorderState = {
   /** El montaje está en marcha; la toma ya ha parado. */
   isComposing: boolean;
   toggle: () => void;
+  /**
+   * Apunta dónde está el recuadro ahora mismo, mientras se arrastra.
+   *
+   * Lo llama el propio recuadro a intervalos. Fuera de una toma no hace nada.
+   */
+  trackMove: (position: { x: number; y: number }) => void;
 };
 
 export type DualShot = {
@@ -100,6 +106,9 @@ export function useDualRecorder({ back, front, shot, screenAspect }: Options): D
    */
   const segments = useRef<ComposeSegment[]>([]);
   const startedAt = useRef(0);
+  // El estado no vale aquí: `trackMove` lo llama el gesto, que captura la
+  // versión del render en que se creó.
+  const recording = useRef(false);
 
   // Si el componente se va con el montaje a medias, no hay a quién avisar.
   const alive = useRef(true);
@@ -127,24 +136,42 @@ export function useDualRecorder({ back, front, shot, screenAspect }: Options): D
    * recuadro dispara esto en cada suelta y no hace falta llenar la lista de
    * tramos idénticos.
    */
-  useEffect(() => {
-    if (!isRecording) return;
+  const remember = useCallback((shotNow: DualShot) => {
     const last = segments.current[segments.current.length - 1];
-    const current = latestShot.current;
     if (
       last != null &&
-      last.backIsBackground === current.backIsBackground &&
-      last.x === current.x &&
-      last.y === current.y &&
-      last.width === current.width
+      last.backIsBackground === shotNow.backIsBackground &&
+      last.x === shotNow.x &&
+      last.y === shotNow.y &&
+      last.width === shotNow.width
     ) {
       return;
     }
     segments.current.push({
       start: Math.max(0, (Date.now() - startedAt.current) / 1000),
-      ...current,
+      ...shotNow,
     });
-  }, [isRecording, shot.backIsBackground, shot.x, shot.y, shot.width]);
+  }, []);
+
+  useEffect(() => {
+    if (!isRecording) return;
+    remember(latestShot.current);
+  }, [isRecording, remember, shot.backIsBackground, shot.x, shot.y, shot.width]);
+
+  /**
+   * El recorrido del recuadro mientras el dedo lo mueve.
+   *
+   * Cada punto es un tramo más, y el montaje interpola de uno al siguiente. Sin
+   * esto solo quedarían el principio y el final del arrastre, y en el vídeo el
+   * recuadro aparecería de golpe en su destino.
+   */
+  const trackMove = useCallback(
+    (position: { x: number; y: number }) => {
+      if (!recording.current) return;
+      remember({ ...latestShot.current, x: position.x, y: position.y });
+    },
+    [remember],
+  );
 
   const start = useCallback(async () => {
     if (!permission?.granted) {
@@ -168,6 +195,7 @@ export function useDualRecorder({ back, front, shot, screenAspect }: Options): D
     takes.current = [backTake, frontTake];
     startedAt.current = Date.now();
     segments.current = [{ start: 0, ...latestShot.current }];
+    recording.current = true;
     setIsRecording(true);
 
     // No se espera aquí: esto se resuelve cuando el usuario pare, muchos
@@ -179,6 +207,7 @@ export function useDualRecorder({ back, front, shot, screenAspect }: Options): D
     void Promise.allSettled([backTake.file, frontTake.file])
       .then(async ([backResult, frontResult]) => {
         takes.current = [];
+        recording.current = false;
         if (alive.current) {
           setIsRecording(false);
           setDuration(0);
@@ -266,5 +295,5 @@ export function useDualRecorder({ back, front, shot, screenAspect }: Options): D
       });
   }, [isBusy, isComposing, isRecording, start, stop]);
 
-  return { isRecording, duration, isBusy, isComposing, toggle };
+  return { isRecording, duration, isBusy, isComposing, toggle, trackMove };
 }

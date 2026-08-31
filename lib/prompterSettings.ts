@@ -11,6 +11,13 @@ import type { PhysicalDeviceType, TargetStabilizationMode } from 'react-native-v
 import { t } from './i18n';
 
 export type PrompterSettings = {
+  /**
+   * ¿Se enseña la banda del guion?
+   *
+   * Apagarla deja la app como una cámara a secas, que es lo que quieres cuando
+   * grabas un plano de recurso y el guion solo estorba.
+   */
+  prompterEnabled: boolean;
   /** Guion completo. */
   text: string;
   /** Tamaño de fuente en px. */
@@ -61,6 +68,8 @@ export type PrompterSettings = {
   pipY: number;
   /** Ancho del recuadro, en fracción del ancho de la pantalla. */
   pipWidth: number;
+  /** Redondeo de las esquinas del recuadro, en px. */
+  pipRadius: number;
   /**
    * Lentes que se le piden a la cámara trasera, con una cámara y con las dos.
    * Menos lentes es una cámara que arranca antes y que no salta sola de una a
@@ -108,6 +117,7 @@ export const LENS_TYPES = [
 export type LensChoice = (typeof LENS_TYPES)[number];
 
 export const DEFAULT_SETTINGS: PrompterSettings = {
+  prompterEnabled: true,
   text: t('defaultScript'),
   fontSize: 30,
   speed: 30,
@@ -126,6 +136,7 @@ export const DEFAULT_SETTINGS: PrompterSettings = {
   pipX: 0.64,
   pipY: 0.08,
   pipWidth: 0.3,
+  pipRadius: 14,
   // Las tres: es lo que da las paradas ópticas de 0,5× / 1× / 3×.
   backLenses: [...LENS_TYPES],
   tapHintSeen: false,
@@ -143,6 +154,8 @@ export const LIMITS = {
   // Más pequeño que un quinto de pantalla no se distingue quién sale; más
   // grande que la mitad deja de ser un recuadro y tapa la toma principal.
   pipWidth: { min: 0.2, max: 0.5, step: 0.01 },
+  // Hasta 40 px las esquinas se comen el recuadro entero por los lados cortos.
+  pipRadius: { min: 0, max: 40, step: 1 },
   panelTop: { min: 0, max: 1, step: 0.01 },
   // El tope de arriba no es 0: con la línea pegada al borde no queda sitio
   // para leer la frase siguiente, que es justo para lo que sirve un

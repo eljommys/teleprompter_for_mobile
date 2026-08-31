@@ -191,11 +191,33 @@ private enum Composer {
 
       let placed = box(overlay, canvas: canvas, segment: segment, visible: visible)
       let overlayInstruction = AVMutableVideoCompositionLayerInstruction(assetTrack: overlay.track)
-      overlayInstruction.setTransform(placed.transform, at: .zero)
-      // Sin recorte, la toma del recuadro se saldría de su hueco y taparía el
-      // fondo alrededor: se agranda hasta llenarlo —como la vista previa, que va
-      // en `cover`— y lo que sobra hay que quitarlo.
-      overlayInstruction.setCropRectangle(placed.crop, at: .zero)
+
+      // Si el tramo siguiente es el mismo encuadre moviéndose —no un cambio de
+      // cámara—, se interpola de aquí a allí en vez de dar el salto. Es lo que
+      // convierte los puntos que apunta el arrastre en un movimiento continuo:
+      // el recuadro acompaña al dedo en el vídeo igual que lo hizo en pantalla.
+      let following = index + 1 < options.segments.count ? options.segments[index + 1] : nil
+      let ramp = following.flatMap { next -> ComposeSegment? in
+        next.backIsBackground == segment.backIsBackground ? next : nil
+      }
+
+      if let ramp {
+        let target = box(overlay, canvas: canvas, segment: ramp, visible: visible)
+        let span = CMTimeRange(start: start, end: min(end, duration))
+        overlayInstruction.setTransformRamp(
+          fromStart: placed.transform, toEnd: target.transform, timeRange: span)
+        // El recorte viaja con la transformación: si se quedara fijo, el hueco
+        // no acompañaría a la imagen y el recuadro iría dejando recortes por el
+        // camino.
+        overlayInstruction.setCropRectangleRamp(
+          fromStartCropRectangle: placed.crop, toEndCropRectangle: target.crop, timeRange: span)
+      } else {
+        overlayInstruction.setTransform(placed.transform, at: .zero)
+        // Sin recorte, la toma del recuadro se saldría de su hueco y taparía el
+        // fondo alrededor: se agranda hasta llenarlo —como la vista previa, que
+        // va en `cover`— y lo que sobra hay que quitarlo.
+        overlayInstruction.setCropRectangle(placed.crop, at: .zero)
+      }
 
       let instruction = AVMutableVideoCompositionInstruction()
       instruction.timeRange = CMTimeRange(start: start, end: min(end, duration))

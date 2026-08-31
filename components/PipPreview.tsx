@@ -27,14 +27,36 @@ type Props = {
   y: number;
   /** Ancho del recuadro, en fracción del ancho del lienzo. */
   width: number;
-  /** Se llama al soltar, no en cada dedo movido. */
+  /** Redondeo de las esquinas, en px. */
+  radius: number;
+  /** Se llama al soltar: es lo que se guarda en los ajustes. */
   onMoved: (position: { x: number; y: number }) => void;
+  /**
+   * Se llama mientras arrastras, a intervalos.
+   *
+   * Sirve para que la grabación apunte el recorrido: sin esto el vídeo solo
+   * conocería el punto de partida y el de llegada, y el recuadro daría un salto
+   * en vez de acompañar al dedo.
+   */
+  onMoving?: (position: { x: number; y: number }) => void;
 };
+
+/** Cada cuánto se apunta la posición mientras se arrastra, en ms. */
+const TRACK_EVERY = 100;
 
 /** Proporción del recuadro. Vertical, como graba la app. */
 const ASPECT = 16 / 9;
 
-export function PipPreview({ previewOutput, canvas, x, y, width, onMoved }: Props) {
+export function PipPreview({
+  previewOutput,
+  canvas,
+  x,
+  y,
+  width,
+  radius,
+  onMoved,
+  onMoving,
+}: Props) {
   const boxWidth = canvas.width * width;
   const boxHeight = boxWidth * ASPECT;
 
@@ -72,6 +94,13 @@ export function PipPreview({ previewOutput, canvas, x, y, width, onMoved }: Prop
     latestOnMoved.current(position);
   }, []);
 
+  const latestOnMoving = useRef(onMoving);
+  latestOnMoving.current = onMoving;
+  const track = useCallback((position: { x: number; y: number }) => {
+    latestOnMoving.current?.(position);
+  }, []);
+  const lastTrackAt = useSharedValue(0);
+
   // Los valores compartidos solo se estrenan con el primer valor, así que hay
   // que traerlos de vuelta cuando la posición cambia por fuera del arrastre:
   // al llegar los ajustes guardados, o al agrandar el recuadro, que reduce el
@@ -104,6 +133,18 @@ export function PipPreview({ previewOutput, canvas, x, y, width, onMoved }: Prop
           // recortado en el fichero, donde ya no hay forma de recolocarlo.
           offsetX.value = clamp(startX.value + event.translationX, 0, limits.value.maxX);
           offsetY.value = clamp(startY.value + event.translationY, 0, limits.value.maxY);
+
+          // Se va apuntando el recorrido, no solo el destino. A diez veces por
+          // segundo basta: el montaje interpola entre punto y punto, así que en
+          // el vídeo el recuadro acompaña al dedo en vez de dar un salto.
+          const now = Date.now();
+          if (now - lastTrackAt.value < TRACK_EVERY) return;
+          lastTrackAt.value = now;
+          const { width: canvasWidth, height: canvasHeight } = limits.value;
+          runOnJS(track)({
+            x: canvasWidth > 0 ? offsetX.value / canvasWidth : 0,
+            y: canvasHeight > 0 ? offsetY.value / canvasHeight : 0,
+          });
         })
         .onFinalize(() => {
           dragging.value = false;
@@ -113,7 +154,7 @@ export function PipPreview({ previewOutput, canvas, x, y, width, onMoved }: Prop
             y: canvasHeight > 0 ? offsetY.value / canvasHeight : 0,
           });
         }),
-    [dragging, limits, offsetX, offsetY, startX, startY, report],
+    [dragging, limits, offsetX, offsetY, startX, startY, report, track, lastTrackAt],
   );
 
   const boxStyle = useAnimatedStyle(() => ({
@@ -123,7 +164,7 @@ export function PipPreview({ previewOutput, canvas, x, y, width, onMoved }: Prop
   return (
     <GestureDetector gesture={drag}>
       <Animated.View
-        style={[styles.box, { width: boxWidth, height: boxHeight }, boxStyle]}>
+        style={[styles.box, { width: boxWidth, height: boxHeight, borderRadius: radius }, boxStyle]}>
         <NativePreviewView
           previewOutput={previewOutput}
           resizeMode="cover"
@@ -139,10 +180,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     left: 0,
-    borderRadius: 14,
-    // Las esquinas redondeadas son solo de la vista previa: el montaje se hace
+    // El redondeo llega por prop. Es solo de la vista previa: el montaje se hace
     // con una exportación de AVFoundation, que compone rectángulos y no sabe
-    // recortar cantos. En el fichero el recuadro sale recto.
+    // recortar cantos, así que en el fichero el recuadro sale recto.
     overflow: 'hidden',
     borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.35)',

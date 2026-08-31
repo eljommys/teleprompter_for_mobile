@@ -104,6 +104,23 @@ export function SettingsSheet({
               contentContainerStyle={styles.bodyContent}
               keyboardShouldPersistTaps="handled">
               <SectionLabel icon="script-text-outline" label={t('settings.section.script')} />
+
+              <View style={styles.switchRow}>
+                <View style={styles.switchText}>
+                  <View style={styles.labelGroup}>
+                    <MaterialCommunityIcons name="text-box-outline" size={17} color="#8e8e93" />
+                    <Text style={styles.label}>{t('settings.prompterEnabled')}</Text>
+                  </View>
+                  <Text style={styles.hint}>{t('settings.prompterEnabledHint')}</Text>
+                </View>
+                <Switch
+                  value={settings.prompterEnabled}
+                  onValueChange={(prompterEnabled) => update({ prompterEnabled })}
+                  trackColor={{ true: ACCENT, false: '#3a3a3c' }}
+                  thumbColor="#fff"
+                />
+              </View>
+
               <TextInput
                 style={styles.textArea}
                 multiline
@@ -277,6 +294,22 @@ export function SettingsSheet({
                   minLabel={t('settings.pipWidth.small')}
                   maxLabel={t('settings.pipWidth.big')}
                   onChange={(pipWidth) => update({ pipWidth })}
+                  onSlidingStart={beginPeek}
+                  onSlidingComplete={endPeek}
+                />
+              ) : null}
+
+              {settings.dualCamera && supportsDualCamera ? (
+                <LabeledSlider
+                  icon="rounded-corner"
+                  label={t('settings.pipRadius')}
+                  hint={t('settings.pipRadiusHint')}
+                  value={settings.pipRadius}
+                  limits={LIMITS.pipRadius}
+                  format={(value) => `${Math.round(value)} px`}
+                  minLabel={t('settings.pipRadius.square')}
+                  maxLabel={t('settings.pipRadius.round')}
+                  onChange={(pipRadius) => update({ pipRadius })}
                   onSlidingStart={beginPeek}
                   onSlidingComplete={endPeek}
                 />

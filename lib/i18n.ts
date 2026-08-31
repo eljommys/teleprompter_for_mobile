@@ -12,6 +12,10 @@ const es = {
   'settings.title': 'Guion y ajustes',
   'settings.done': 'Listo',
   'settings.section.script': 'Guion',
+  'settings.prompterEnabled': 'Enseñar el guion',
+  'settings.prompterEnabledHint':
+    'Apagado, queda una cámara a secas. Útil para grabar un plano de recurso sin ' +
+    'la banda de texto por delante.',
   'settings.placeholder': 'Pega aquí tu guion…',
   'settings.rewind': 'Volver al principio',
   'settings.fontSize': 'Tamaño de letra',
@@ -56,7 +60,14 @@ const es = {
   'settings.pipWidth': 'Tamaño del recuadro',
   'settings.pipWidth.small': 'Pequeño',
   'settings.pipWidth.big': 'Grande',
-  'recorder.composing': 'Montando el vídeo…',
+  'settings.pipRadius': 'Esquinas del recuadro',
+  'settings.pipRadius.square': 'Rectas',
+  'settings.pipRadius.round': 'Redondas',
+  'settings.pipRadiusHint':
+    'Solo en pantalla: el montaje del vídeo compone rectángulos y las esquinas ' +
+    'salen rectas en el fichero.',
+  'recorder.savingTitle': 'Guardando el vídeo',
+  'recorder.savingBody': 'Se están juntando las dos tomas en un solo vídeo. No cierres la app.',
   'settings.lenses': 'Lentes de la cámara trasera',
   'settings.lensesHint':
     'Con cuáles quieres encuadrar. Quitar lentes también quita sus paradas de zoom, ' +
@@ -93,6 +104,10 @@ const en: Record<TextKey, string> = {
   'settings.title': 'Script & settings',
   'settings.done': 'Done',
   'settings.section.script': 'Script',
+  'settings.prompterEnabled': 'Show the script',
+  'settings.prompterEnabledHint':
+    'Turned off it is just a camera. Handy for shooting B-roll without the text ' +
+    'band in the way.',
   'settings.placeholder': 'Paste your script here…',
   'settings.rewind': 'Back to the top',
   'settings.fontSize': 'Font size',
@@ -137,7 +152,14 @@ const en: Record<TextKey, string> = {
   'settings.pipWidth': 'Box size',
   'settings.pipWidth.small': 'Small',
   'settings.pipWidth.big': 'Large',
-  'recorder.composing': 'Merging the video…',
+  'settings.pipRadius': 'Box corners',
+  'settings.pipRadius.square': 'Square',
+  'settings.pipRadius.round': 'Round',
+  'settings.pipRadiusHint':
+    'On screen only: the video is composed from rectangles, so the corners come ' +
+    'out square in the file.',
+  'recorder.savingTitle': 'Saving the video',
+  'recorder.savingBody': 'Both takes are being merged into a single video. Do not close the app.',
   'settings.lenses': 'Back camera lenses',
   'settings.lensesHint':
     'Which ones you want to frame with. Dropping a lens also drops its zoom stop, ' +
