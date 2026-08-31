@@ -1,0 +1,16 @@
+=== WHAT'S NEW 1.3.0 (4000) ===
+The second camera's box is yours now: give it the shape you want and move it while you record.
+
+SHAPE THE BOX
+Make it portrait or square, round the corners all the way to a full circle, and give it a shadow. All of it shows up in the saved video, not just on screen.
+
+MOVE IT MID-TAKE
+Drag it while recording and the video keeps the whole path: the box travels exactly as you moved it, with no jumps.
+
+THE SCRIPT, ONLY WHEN YOU WANT IT
+A switch hides it and leaves you a plain camera, for those B-roll shots where text is in the way. Your settings and your script are still there when you turn it back on.
+
+WRITING WITHOUT THE FUSS
+The script is edited on its own screen. Settings take up far less room, and the keyboard no longer pops up while you scroll through them.
+
+And when you stop recording with both cameras, a screen keeps you posted while the two takes are merged into a single video.

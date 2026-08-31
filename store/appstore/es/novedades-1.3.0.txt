@@ -1,0 +1,16 @@
+=== NOVEDADES 1.3.0 (4000) ===
+El recuadro de la segunda cámara ahora es tuyo: dale la forma que quieras y muévelo mientras grabas.
+
+DALE FORMA AL RECUADRO
+Ponlo vertical o cuadrado, redondéale las esquinas hasta dejarlo completamente redondo y añádele sombra. Todo eso sale igual en el vídeo guardado, no solo en la pantalla.
+
+MUÉVELO EN MITAD DE LA TOMA
+Si lo arrastras mientras grabas, el vídeo recoge el recorrido entero: el recuadro se desplaza como lo hiciste tú, sin saltos.
+
+EL GUION, SOLO CUANDO LO QUIERAS
+Un interruptor lo esconde y deja la app como una cámara a secas, para esos planos de recurso en los que el texto estorba. Tus ajustes y tu guion siguen donde estaban al volver a encenderlo.
+
+ESCRIBIR SIN ESTORBOS
+El guion se edita en su propia pantalla. Los ajustes ocupan mucho menos y se acabó que salte el teclado al desplazarte por ellos.
+
+Y al parar de grabar con las dos cámaras, una pantalla te avisa mientras se juntan las dos tomas en un solo vídeo.
