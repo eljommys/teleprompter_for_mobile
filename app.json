@@ -21,7 +21,7 @@
         "NSPhotoLibraryAddUsageDescription": "To save your takes to your Photos.",
         "ITSAppUsesNonExemptEncryption": false
       },
-      "buildNumber": "1"
+      "buildNumber": "2"
     },
     "android": {
       "package": "com.rackslabs.prompter",
