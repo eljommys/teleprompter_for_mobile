@@ -1,6 +1,5 @@
 import AVFoundation
 import CoreImage
-import UIKit
 
 /**
  * Compositor propio para el recuadro de la segunda cámara.
@@ -41,6 +40,7 @@ final class PipCompositor: NSObject, AVVideoCompositing {
   func startRequest(_ request: AVAsynchronousVideoCompositionRequest) {
     queue.async { [weak self] in
       guard let self else { return }
+      autoreleasepool {
       guard
         let instruction = request.videoCompositionInstruction as? PipInstruction,
         let destination = request.renderContext.newPixelBuffer()
@@ -53,40 +53,42 @@ final class PipCompositor: NSObject, AVVideoCompositing {
       let time = CMTimeGetSeconds(request.compositionTime)
       let shot = instruction.shot(at: time)
 
-      let backID = instruction.backTrackID
-      let frontID = instruction.frontTrackID
-      guard
-        let backBuffer = request.sourceFrame(byTrackID: backID),
-        let frontBuffer = request.sourceFrame(byTrackID: frontID)
-      else {
+      // Enderezadas primero: los fotogramas llegan crudos, tal y como los
+      // guardó la cámara, y una toma vertical viene tumbada.
+      let backImage = request.sourceFrame(byTrackID: instruction.backTrackID)
+        .map { CIImage(cvPixelBuffer: $0).transformed(by: instruction.backTransform) }
+      let frontImage = request.sourceFrame(byTrackID: instruction.frontTrackID)
+        .map { CIImage(cvPixelBuffer: $0).transformed(by: instruction.frontTransform) }
+
+      let background = shot.backIsBackground ? backImage : frontImage
+      let overlay = shot.backIsBackground ? frontImage : backImage
+
+      // Que falte un fotograma no puede tirar abajo el montaje entero: pasa en
+      // los bordes, cuando una toma empieza o acaba un pelo antes que la otra.
+      // Sin fondo no hay nada que pintar; sin recuadro, se sigue con el fondo a
+      // secas, que es infinitamente mejor que quedarse sin vídeo.
+      guard let background else {
         request.finish(with: PipCompositorError.noFrame)
         return
       }
-
-      // Enderezadas primero: los fotogramas llegan crudos, tal y como los
-      // guardó la cámara, y una toma vertical viene tumbada.
-      let backImage = CIImage(cvPixelBuffer: backBuffer)
-        .transformed(by: instruction.backTransform)
-      let frontImage = CIImage(cvPixelBuffer: frontBuffer)
-        .transformed(by: instruction.frontTransform)
-      let background = shot.backIsBackground ? backImage : frontImage
-      let overlay = shot.backIsBackground ? frontImage : backImage
 
       let frame = self.compose(
         background: background, overlay: overlay, shot: shot, canvas: canvas)
       self.context.render(frame, to: destination)
       request.finish(withComposedVideoFrame: destination)
+      }
     }
   }
 
   func cancelAllPendingVideoCompositionRequests() {}
 
   /** Pinta un fotograma: el fondo, la sombra y el recuadro recortado encima. */
-  private func compose(background: CIImage, overlay: CIImage, shot: PipShot, canvas: CGSize)
+  private func compose(background: CIImage, overlay: CIImage?, shot: PipShot, canvas: CGSize)
     -> CIImage
   {
     let canvasRect = CGRect(origin: .zero, size: canvas)
     let filled = cover(background, in: canvasRect)
+    guard let overlay else { return filled.cropped(to: canvasRect) }
 
     // Coordenadas de pantalla a coordenadas de lienzo: la vista previa va en
     // `cover`, así que de la toma solo se ve la franja central que cabe en la
@@ -115,11 +117,12 @@ final class PipCompositor: NSObject, AVVideoCompositing {
     if shot.shadow > 0.01 {
       let blur = 18 * shot.shadow
       let drop = 8 * shot.shadow
+      let boxBounds = CGRect(origin: .zero, size: box.size)
       let shadow = CIImage(color: CIColor(red: 0, green: 0, blue: 0, alpha: shot.shadow))
-        .cropped(to: CGRect(origin: .zero, size: box.size))
+        .cropped(to: boxBounds)
         .applyingFilter("CIBlendWithAlphaMask", parameters: [
           kCIInputMaskImageKey: mask,
-          kCIInputBackgroundImageKey: CIImage.empty(),
+          kCIInputBackgroundImageKey: CIImage(color: .clear).cropped(to: boxBounds),
         ])
         .applyingFilter("CIGaussianBlur", parameters: [kCIInputRadiusKey: blur])
         .transformed(by: CGAffineTransform(translationX: box.minX, y: box.minY - drop))
@@ -129,7 +132,8 @@ final class PipCompositor: NSObject, AVVideoCompositing {
     let framed = cover(overlay, in: CGRect(origin: .zero, size: box.size))
       .applyingFilter("CIBlendWithAlphaMask", parameters: [
         kCIInputMaskImageKey: mask,
-        kCIInputBackgroundImageKey: CIImage.empty(),
+        kCIInputBackgroundImageKey: CIImage(color: .clear)
+          .cropped(to: CGRect(origin: .zero, size: box.size)),
       ])
       .transformed(by: CGAffineTransform(translationX: box.minX, y: box.minY))
 
@@ -160,15 +164,26 @@ final class PipCompositor: NSObject, AVVideoCompositing {
     let key = "\(Int(size.width))x\(Int(size.height))@\(Int(corner))"
     if let cached = maskCache[key] { return cached }
 
-    let renderer = UIGraphicsImageRenderer(size: size)
-    let image = renderer.image { ctx in
-      UIColor.white.setFill()
-      UIBezierPath(
-        roundedRect: CGRect(origin: .zero, size: size),
-        cornerRadius: min(corner, min(size.width, size.height) / 2)
-      ).fill()
+    let width = max(1, Int(size.width.rounded()))
+    let height = max(1, Int(size.height.rounded()))
+    let bounds = CGRect(x: 0, y: 0, width: CGFloat(width), height: CGFloat(height))
+    let limit = min(corner, min(bounds.width, bounds.height) / 2)
+
+    guard
+      let space = CGColorSpace(name: CGColorSpace.sRGB),
+      let ctx = CGContext(
+        data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
+        space: space, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+    else { return CIImage(color: .white).cropped(to: bounds) }
+
+    ctx.setFillColor(CGColor(red: 1, green: 1, blue: 1, alpha: 1))
+    ctx.addPath(CGPath(roundedRect: bounds, cornerWidth: limit, cornerHeight: limit, transform: nil))
+    ctx.fillPath()
+
+    guard let cgImage = ctx.makeImage() else {
+      return CIImage(color: .white).cropped(to: bounds)
     }
-    let mask = CIImage(image: image) ?? CIImage.empty()
+    let mask = CIImage(cgImage: cgImage)
     // Un puñado de tamaños distintos como mucho; si se dispara, se vacía.
     if maskCache.count > 24 { maskCache.removeAll() }
     maskCache[key] = mask
