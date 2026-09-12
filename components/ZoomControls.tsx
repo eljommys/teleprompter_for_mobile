@@ -1,7 +1,11 @@
+// Del submódulo y no del índice del paquete: importar `@expo/vector-icons` a
+// secas mete en el bundle las nueve tipografías de iconos, y aquí se usa una.
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Slider from '@react-native-community/slider';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { SharedValue } from 'react-native-reanimated';
 
+import type { LensChoice } from '../lib/prompterSettings';
 import { clampZoom, formatZoom, fromSliderPosition, toDisplay, toSliderPosition, type ZoomScale } from '../lib/zoom';
 
 type Props = {
@@ -16,6 +20,20 @@ type Props = {
 };
 
 const ACCENT = '#ffd60a';
+
+/**
+ * Con qué lente se graba en cada parada.
+ *
+ * Va en el propio botón porque es la única forma de saber si estás en óptica de
+ * verdad o en recorte digital. Con las lentes limitadas en los ajustes importa
+ * todavía más: dos paradas con el mismo icono son la misma lente, una de ellas
+ * ampliada a lo bruto.
+ */
+const LENS_ICON = {
+  'ultra-wide-angle': 'panorama-wide-angle',
+  'wide-angle': 'camera-iris',
+  telephoto: 'binoculars',
+} as const satisfies Record<LensChoice, string>;
 
 /**
  * Zoom: botones de lente y un deslizador.
@@ -39,7 +57,7 @@ export function ZoomControls({ scale, zoom, zoomUi, onChangeZoom, onSettle }: Pr
   return (
     <View style={styles.wrapper}>
       <View style={styles.stops}>
-        {scale.stopsRaw.map((raw) => {
+        {scale.stops.map(({ raw, lens }) => {
           const active = Math.abs(zoomUi - raw) < raw * 0.02;
           return (
             <Pressable
@@ -50,6 +68,13 @@ export function ZoomControls({ scale, zoom, zoomUi, onChangeZoom, onSettle }: Pr
                 onSettle(clampZoom(raw, scale));
               }}
               style={[styles.stop, active && styles.stopActive]}>
+              {lens == null ? null : (
+                <MaterialCommunityIcons
+                  name={LENS_ICON[lens]}
+                  size={11}
+                  color={active ? '#000' : 'rgba(255, 255, 255, 0.75)'}
+                />
+              )}
               <Text style={[styles.stopLabel, active && styles.stopLabelActive]}>
                 {formatZoom(toDisplay(raw, scale))}
               </Text>
@@ -96,10 +121,11 @@ const styles = StyleSheet.create({
   stop: {
     minWidth: 44,
     paddingHorizontal: 10,
-    paddingVertical: 7,
+    paddingVertical: 6,
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.45)',
   },
   stopActive: {

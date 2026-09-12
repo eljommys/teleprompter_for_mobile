@@ -36,6 +36,16 @@ en la compilación nativa.
   `RCTStatusBarManager`. Lo más seguro es no tocar la clave.
 - **`expo-modules-jsi@57.0.4` no compila con Xcode 26 / Swift 6.2.** Está
   parcheado en `patches/`; ver el README.
+- **Abrir Fotos por un vídeo concreto no es API pública.** No hay URL que lleve
+  a un `PHAsset`. `photos://` no abre nada; `photos-navigation://` sí abre la
+  app y admite un `revealassetuuid`, pero no está documentado y puede limitarse
+  a enseñar Recientes. Por eso `lib/useLastVideo.ts` encadena esa URL con
+  `photos-redirect://`, que solo abre la app pero nunca falla.
+- **La miniatura de un vídeo del Carrete no hay que generarla.**
+  `expo-media-library` registra un `RCTImageURLLoader` para las URIs `ph://`, así
+  que un `<Image source={{ uri: asset.id }}>` ya pide a Fotos el fotograma de
+  portada —también de un vídeo—. Montar un generador nativo con
+  `AVAssetImageGenerator` es trabajo tirado.
 - **Pasar un `SharedValue` a `<Camera zoom={...}>` exige
   `react-native-vision-camera-worklets`.** Sin él, la app arranca y revienta con
   «Cannot use Frame Processors — `react-native-vision-camera-worklets` is not

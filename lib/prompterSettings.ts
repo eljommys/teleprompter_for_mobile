@@ -56,8 +56,23 @@ export type PrompterSettings = {
    * no parte de la imagen.
    */
   mirrorFront: boolean;
+  /**
+   * Compensación de exposición, en EV. Negativo oscurece, positivo aclara.
+   *
+   * El rango sale de la cámara, no de aquí: cada una tiene el suyo y lo que se
+   * guarde se recorta al de la cámara que esté abierta. Se puede mover en
+   * mitad de una toma, porque no reconfigura la sesión.
+   */
+  exposure: number;
   /** Estabilización de vídeo. Ver `STABILIZATION_MODES`. */
   stabilization: StabilizationChoice;
+  /**
+   * Grabar al doble de fotogramas por segundo. Ver `HIGH_FPS`.
+   *
+   * Solo se pide con una cámara: con las dos a la vez no cabe en el presupuesto
+   * de hardware, así que ahí se graba a lo de siempre aunque esto esté puesto.
+   */
+  highFrameRate: boolean;
   /**
    * Grabar con las dos cámaras a la vez: una llena el cuadro y la otra va en un
    * recuadro encima. Pide un iPhone que admita sesiones multicámara.
@@ -124,6 +139,15 @@ export const LENS_TYPES = [
 export type LensChoice = (typeof LENS_TYPES)[number];
 
 /**
+ * Los fotogramas por segundo del modo rápido.
+ *
+ * 60 y no 120: a 120 la cámara del iPhone graba en cámara lenta —el fichero
+ * sale marcado para reproducirse a ralentí— y esto es una app de hablar a
+ * cámara. 60 es lo que se usa para que un movimiento de cabeza no deje estela.
+ */
+export const HIGH_FPS = 60;
+
+/**
  * Formas del recuadro de la segunda cámara.
  *
  * `portrait` es la de la app, 9:16, y encaja con lo que graba. `square` recorta
@@ -151,7 +175,12 @@ export const DEFAULT_SETTINGS: PrompterSettings = {
   mirrorFront: true,
   // Sin `constraints` la sesión no pedía estabilización ninguna, y se notaba.
   // 'standard' es la que Apple describe como la buena para vídeo grabado.
+  exposure: 0,
   stabilization: 'standard',
+  // Apagado de fábrica: 60 fps dobla el tamaño del fichero y, con estabilización
+  // pedida, puede no caber y dejarte grabando sin ella. Quien lo quiera, que lo
+  // encienda sabiendo lo que cuesta.
+  highFrameRate: false,
   dualCamera: false,
   // Arriba a la derecha: es donde menos tapa el guion, que va centrado.
   pipX: 0.64,

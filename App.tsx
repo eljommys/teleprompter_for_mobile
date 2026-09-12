@@ -24,9 +24,11 @@ import {
   VisionCamera,
   type CameraRef,
   type CameraSessionConfig,
+  type Constraint,
   type TargetCameraPosition,
 } from 'react-native-vision-camera';
 
+import { CameraBar } from './components/CameraBar';
 import { ControlBar } from './components/ControlBar';
 import { t } from './lib/i18n';
 import { DebugPanel } from './components/DebugPanel';
@@ -37,11 +39,13 @@ import { ZoomControls } from './components/ZoomControls';
 import { canComposeVideo } from './modules/video-composer';
 import { useDualCamera, useDualOutputs } from './lib/useDualCamera';
 import { useDualRecorder } from './lib/useDualRecorder';
+import { useLastVideo } from './lib/useLastVideo';
 import { useRecorder } from './lib/useRecorder';
 import { useScriptScroll } from './lib/useScriptScroll';
 import { useSettings } from './lib/useSettings';
-import { LENS_TYPES, pipAspect, STABILIZATION_MODES } from './lib/prompterSettings';
-import { buildZoomScale, clampZoom, type ZoomScale } from './lib/zoom';
+import { listLenses, pickDevice } from './lib/lenses';
+import { clamp, HIGH_FPS, pipAspect, STABILIZATION_MODES } from './lib/prompterSettings';
+import { buildLensReference, buildZoomScale, clampZoom, type ZoomScale } from './lib/zoom';
 
 /**
  * Girar la cámara reconfigura la sesión entera. Encadenar giros rápidos es la
@@ -66,6 +70,9 @@ function Studio() {
 
   const { settings, loaded, update } = useSettings();
   const scroll = useScriptScroll(settings.speed, settings.fontSize);
+  // El acceso directo a la galería. No pide nada al arrancar: si todavía no hay
+  // permiso de lectura, el botón sale sin miniatura y lo pide al pulsarlo.
+  const lastVideo = useLastVideo();
 
   /**
    * La grabadora persistente es la pieza que permite girar la cámara sin cortar
@@ -76,9 +83,13 @@ function Studio() {
     targetResolution: CommonResolutions.FHD_16_9,
     enableAudio: true,
     enablePersistentRecorder: true,
-    fileType: 'mp4',
+    // `.mov` y sin tasa de bits puesta a mano: así la toma sale como la de la
+    // cámara del sistema —mismo contenedor, mismo códec eficiente y la calidad
+    // que el propio iPhone da por buena para ese formato—. Con `.mp4` y cifras
+    // nuestras, el vídeo salía peor que el de la cámara de al lado sin motivo.
+    fileType: 'mov',
   });
-  const single = useRecorder(videoOutput);
+  const single = useRecorder(videoOutput, lastVideo.noteNewVideo);
 
   /**
    * Las dos cámaras a la vez. La sesión solo se levanta con el modo encendido:
@@ -107,6 +118,7 @@ function Studio() {
       shadow: settings.pipShadow,
     },
     screenAspect: screenWidth / screenHeight,
+    onSaved: lastVideo.noteNewVideo,
   });
 
   // Hacen falta las dos cosas: que el iPhone aguante dos cámaras y que este
@@ -139,8 +151,9 @@ function Studio() {
   // La única no vuelve hasta que la doble suelta el hardware.
   const singleActive = !dualRequested && !dual.ready;
 
-  const { isRecording, duration, isBusy, toggle } = dualRequested ? dualRecorder : single;
-  const isComposing = dualRecorder.isComposing;
+  const { isRecording, duration, isBusy, isProcessing, toggle } = dualRequested
+    ? dualRecorder
+    : single;
 
   /**
    * Las lentes de la trasera las elige el usuario; por defecto van las tres, que
@@ -160,29 +173,33 @@ function Studio() {
     if (isRecording) return;
     setAppliedLenses(settings.backLenses);
   }, [isRecording, settings.backLenses]);
-  const backLensFilter = useMemo(() => ({ physicalDevices: appliedLenses }), [appliedLenses]);
-  const backDevice = useCameraDevice('back', backLensFilter);
+
+  const allDevices = useCameraDevices();
+  /**
+   * La trasera se elige a mano, no con el filtro de `useCameraDevice`.
+   *
+   * El filtro de la librería puntúa recorriendo `physicalDevices`, que en una
+   * cámara física está vacío, así que todas las candidatas de una lente suelta
+   * empatan a cero y se queda la primera que enumere el sistema. Pedir solo la
+   * gran angular abría la principal. Ver `pickDevice`.
+   */
+  const backDevice = useMemo(
+    () => pickDevice(allDevices, 'back', appliedLenses),
+    [allDevices, appliedLenses],
+  );
   const frontDevice = useCameraDevice('front');
   const device = facing === 'back' ? backDevice : frontDevice;
 
+  /** Las lentes que este iPhone tiene de verdad detrás. */
+  const availableLenses = useMemo(() => listLenses(allDevices, 'back'), [allDevices]);
+
   /**
-   * Las lentes que este iPhone tiene de verdad detrás.
+   * A qué factor visible corresponde cada lente en este aparato: 0,5×, 1×, 5×.
    *
-   * Se sacan de todas las cámaras traseras que enumera el sistema, no del
-   * dispositivo activo: el activo es justo el que acaba de recortar el filtro,
-   * así que preguntarle a él por las lentes disponibles dejaría fuera las que el
-   * usuario ha desmarcado y ya no podría volver a marcarlas.
+   * Se mide una vez sobre la cámara virtual del iPhone y sirve para todas, que
+   * es lo que permite que una lente suelta siga enseñando su factor de verdad.
    */
-  const allDevices = useCameraDevices();
-  const availableLenses = useMemo(() => {
-    const present = new Set<string>();
-    for (const candidate of allDevices) {
-      if (candidate.position !== 'back') continue;
-      if (candidate.physicalDevices.length === 0) present.add(candidate.type);
-      for (const physical of candidate.physicalDevices) present.add(physical.type);
-    }
-    return LENS_TYPES.filter((lens) => present.has(lens));
-  }, [allDevices]);
+  const lensReference = useMemo(() => buildLensReference(allDevices), [allDevices]);
 
   /**
    * La estabilización se congela mientras se graba.
@@ -199,21 +216,42 @@ function Studio() {
   }, [isRecording, settings.stabilization]);
 
   /**
+   * Los 60 fps se congelan igual que la estabilización, y por lo mismo: son otra
+   * restricción de la sesión, así que moverlos en caliente la reconfiguraría en
+   * mitad de la toma.
+   */
+  const [appliedFps, setAppliedFps] = useState(settings.highFrameRate);
+  useEffect(() => {
+    if (isRecording) return;
+    setAppliedFps(settings.highFrameRate);
+  }, [isRecording, settings.highFrameRate]);
+
+  /** ¿Da esta cámara 60 fps? Si no, el ajuste ni se ofrece. */
+  const supportsHighFrameRate = useMemo(() => device?.supportsFPS(HIGH_FPS) ?? false, [device]);
+
+  /**
    * Memorizado por valor: un array nuevo en cada render sería una sesión nueva
    * en cada render.
    *
-   * Van las dos restricciones, y no solo la de vídeo, porque
+   * Van las dos restricciones de estabilización, y no solo la de vídeo, porque
    * `videoStabilizationMode` solo toca el fichero grabado. Con ella sola el
    * ajuste parece no hacer nada: la vista previa se ve exactamente igual y solo
    * notarías la diferencia reproduciendo la toma después.
+   *
+   * Los fps van los primeros de la lista a propósito. La sesión negocia todo
+   * junto y no siempre cabe todo: pidiendo antes los 60 fps, si hay que soltar
+   * algo se suelta la estabilización, que es lo que se ha pedido —«60 fps
+   * cuando se pueda»— y no al revés.
    */
-  const constraints = useMemo(
-    () => [
-      { videoStabilizationMode: appliedStabilization },
-      { previewStabilizationMode: appliedStabilization },
-    ],
-    [appliedStabilization],
-  );
+  const constraints = useMemo(() => {
+    const wanted: Constraint[] = [];
+    // Pedirlos a una cámara que no los da no rompe nada —la negociación cae al
+    // formato más cercano—, pero sí puede llevarse por delante lo que sí cabía.
+    if (appliedFps && supportsHighFrameRate) wanted.push({ fps: HIGH_FPS });
+    wanted.push({ videoStabilizationMode: appliedStabilization });
+    wanted.push({ previewStabilizationMode: appliedStabilization });
+    return wanted;
+  }, [appliedFps, supportsHighFrameRate, appliedStabilization]);
 
   /**
    * Los modos que este iPhone admite de verdad.
@@ -265,13 +303,38 @@ function Studio() {
   const syncZoomScale = useCallback(() => {
     const controller = camera.current?.controller;
     if (device == null || controller == null) return;
-    const next = buildZoomScale(device, controller);
+    const next = buildZoomScale(device, controller, lensReference);
     setScale(next);
     const remembered = rememberedZoom.current[facing];
     const restored = clampZoom(remembered ?? next.minRaw, next);
     zoom.value = restored;
     setZoomUi(restored);
-  }, [device, facing, zoom]);
+  }, [device, facing, zoom, lensReference]);
+
+  /**
+   * Reconstruye la escala de zoom cada vez que la sesión se reconfigura.
+   *
+   * Llamar a `syncZoomScale` desde `onConfigured` a secas no vale, aunque sea
+   * lo que parece: VisionCamera avisa **antes** de publicar el controlador
+   * nuevo, así que en ese instante `camera.current.controller` sigue siendo el
+   * de la configuración anterior y la escala sale con sus números. Y no hay un
+   * segundo aviso que lo enmiende, porque `onStarted` solo salta al arrancar la
+   * sesión, no al reconfigurarla estando ya en marcha —que es lo que pasa al
+   * tocar los fps, la estabilización o las lentes—.
+   *
+   * Contando las reconfiguraciones en estado, esto corre después del pintado,
+   * que es cuando la referencia ya trae el controlador bueno. Por referencia y
+   * no por dependencia para que solo lo dispare la reconfiguración: `facing`
+   * cambia antes de que la sesión se entere, y ahí el controlador todavía es el
+   * de la otra cámara.
+   */
+  const [configureCount, setConfigureCount] = useState(0);
+  const syncZoomScaleRef = useRef(syncZoomScale);
+  syncZoomScaleRef.current = syncZoomScale;
+  useEffect(() => {
+    if (configureCount === 0) return;
+    syncZoomScaleRef.current();
+  }, [configureCount]);
 
   /**
    * El controlador de la cámara que llena el cuadro, con las dos abiertas.
@@ -288,14 +351,78 @@ function Studio() {
 
   useEffect(() => {
     if (dualController == null) return;
-    const next = buildZoomScale(dualController.device, dualController);
+    const next = buildZoomScale(dualController.device, dualController, lensReference);
     setScale(next);
     const remembered = rememberedZoom.current[facing];
     const restored = clampZoom(remembered ?? next.minRaw, next);
     zoom.value = restored;
     setZoomUi(restored);
     void dualController.setZoom(restored);
-  }, [dualController, facing, zoom]);
+  }, [dualController, facing, zoom, lensReference]);
+
+  /**
+   * Exposición y linterna.
+   *
+   * Las dos se pueden mover en mitad de una toma, y es a propósito: a
+   * diferencia de la estabilización o las lentes, ninguna reconfigura la
+   * sesión —van a la configuración del dispositivo, con su bloqueo y su
+   * desbloqueo—, así que cambiarlas grabando no corta nada.
+   *
+   * La exposición se guarda con el resto de ajustes: si sueles grabar en el
+   * mismo sitio, la corrección buena es la misma cada día y no hay por qué
+   * volver a buscarla. La linterna no: encendida sola al abrir la app sería
+   * una sorpresa desagradable, así que arranca siempre apagada.
+   */
+  const exposure = settings.exposure;
+  const [torch, setTorch] = useState(false);
+
+  // La cámara que llena el cuadro ahora mismo. Con las dos abiertas no es la de
+  // `useCameraDevice`, sino la que devolvió `configure`.
+  const activeDevice = dualMode ? (dualController?.device ?? null) : (device ?? null);
+
+  const exposureRange = useMemo(() => {
+    if (activeDevice == null || !activeDevice.supportsExposureBias) return null;
+    return { min: activeDevice.minExposureBias, max: activeDevice.maxExposureBias };
+  }, [activeDevice]);
+
+  /**
+   * Cada cámara tiene su rango, así que al girar hay que recortar lo que
+   * llevabas puesto: pedir una compensación fuera de rango lanza.
+   *
+   * Sin rango no se toca nada. Al arrancar todavía no hay cámara, y poner un
+   * cero ahí borraría de disco la exposición que el usuario dejó puesta. Y se
+   * escribe solo cuando de verdad sobra, para no guardar en cada repintado.
+   */
+  useEffect(() => {
+    if (exposureRange == null) return;
+    const clamped = clamp(exposure, exposureRange.min, exposureRange.max);
+    if (clamped !== exposure) update({ exposure: clamped });
+  }, [exposure, exposureRange, update]);
+
+  /**
+   * El flash es de la cámara trasera; la frontal no tiene ninguno.
+   *
+   * Con las dos abiertas la trasera está siempre encendida, así que la linterna
+   * sirve mires a donde mires: alumbra lo que ella ve, esté llenando el cuadro
+   * o metida en el recuadro.
+   */
+  const torchController = dualMode ? dual.backController : null;
+  const hasTorch = (dualMode ? torchController?.device : device)?.hasTorch ?? false;
+  useEffect(() => {
+    if (!hasTorch) setTorch(false);
+  }, [hasTorch]);
+
+  // Con una sola cámara de esto se encargan las props de `<Camera>`; con dos no
+  // hay componente al que atarlas y hay que empujarlas al controlador a mano.
+  useEffect(() => {
+    if (dualController == null || exposureRange == null) return;
+    void dualController.setExposureBias(exposure).catch(() => undefined);
+  }, [dualController, exposure, exposureRange]);
+
+  useEffect(() => {
+    if (torchController == null || !hasTorch) return;
+    void torchController.setTorchMode(torch ? 'on' : 'off').catch(() => undefined);
+  }, [torchController, hasTorch, torch]);
 
   /**
    * Lleva el zoom a la cámara.
@@ -378,6 +505,14 @@ function Studio() {
             outputs={[videoOutput]}
             constraints={constraints}
             zoom={zoom}
+            // `undefined` y no 0 cuando no toca: si la cámara no admite
+            // compensación, pedirle cualquier valor —aunque sea el neutro—
+            // lanza; y con el modo doble encendido el rango que hay medido es
+            // el de la otra sesión, que no tiene por qué valer para esta.
+            exposure={dualRequested || exposureRange == null ? undefined : exposure}
+            // Apagada mientras manda el modo doble: esta sesión está parada y
+            // la linterna la lleva el controlador de la trasera.
+            torchMode={!dualRequested && torch && hasTorch ? 'on' : 'off'}
             // 'auto' espeja solo las cámaras frontales, que es lo que hace la
             // cámara del sistema. 'off' no espeja nada.
             mirrorMode={settings.mirrorFront ? 'auto' : 'off'}
@@ -390,7 +525,7 @@ function Studio() {
               syncZoomScale();
             }}
             onStopped={() => setSingleRunning(false)}
-            onConfigured={syncZoomScale}
+            onConfigured={() => setConfigureCount((count) => count + 1)}
             onSessionConfigSelected={setSessionConfig}
           />
         ) : null}
@@ -463,6 +598,16 @@ function Studio() {
           style={[styles.bottom, { paddingBottom: insets.bottom + 14 }]}
           onLayout={(event) => setControlsHeight(event.nativeEvent.layout.height)}
           pointerEvents="box-none">
+          <CameraBar
+            lastVideoUri={lastVideo.uri}
+            onOpenGallery={lastVideo.open}
+            exposureRange={exposureRange}
+            exposure={exposure}
+            onChangeExposure={(next) => update({ exposure: next })}
+            hasTorch={hasTorch}
+            torch={torch}
+            onToggleTorch={() => setTorch((current) => !current)}
+          />
           <ZoomControls
             scale={scale}
             zoom={zoom}
@@ -484,18 +629,21 @@ function Studio() {
           />
         </View>
 
-        {/* Fundir las dos tomas es una exportación entera y tarda lo suyo. Sin
-            avisar, el rato entre parar y ver el vídeo en el Carrete parece que
-            la grabación se ha perdido. */}
-        {/* A pantalla completa y capturando los toques: fundir las dos tomas es
-            una exportación entera, y mientras tanto no hay nada que tocar. Antes
-            era un aviso pequeño arriba y se colaba el impulso de darle otra vez
-            al botón. */}
-        {isComposing ? (
+        {/* Entre parar y ver el vídeo en el Carrete pasa un rato: con las dos
+            cámaras porque hay que fundirlas, que es una exportación entera, y
+            con una sola porque cerrar el fichero y copiarlo a la fototeca
+            tampoco es gratis. Sin avisar, ese rato parece una toma perdida.
+
+            A pantalla completa y capturando los toques: mientras tanto no hay
+            nada que tocar, y antes —con un aviso pequeño arriba— se colaba el
+            impulso de darle otra vez al botón. */}
+        {isProcessing ? (
           <View style={styles.saving}>
             <ActivityIndicator color="#fff" size="large" />
             <Text style={styles.savingTitle}>{t('recorder.savingTitle')}</Text>
-            <Text style={styles.savingBody}>{t('recorder.savingBody')}</Text>
+            <Text style={styles.savingBody}>
+              {dualRequested ? t('recorder.savingBody') : t('recorder.savingBodyOne')}
+            </Text>
           </View>
         ) : null}
 
@@ -515,6 +663,7 @@ function Studio() {
           settings={settings}
           availableStabilization={availableStabilization}
           availableLenses={availableLenses}
+          supportsHighFrameRate={supportsHighFrameRate}
           supportsDualCamera={supportsDual}
           stabilizationDropped={dualMode && !dual.stabilized}
           update={update}

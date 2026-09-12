@@ -16,7 +16,13 @@ un solo aparato.
   sigue siendo un único vídeo, con el audio continuo.
 - Zoom por lentes reales en la trasera (0,5× / 1× / 3×, los que tenga tu modelo)
   y zoom digital en la frontal. Pellizca en cualquier parte fuera de la banda.
-- Al parar, la toma va directa a tu Carrete.
+- Al parar, la toma va directa a tu Carrete, en `.mov` y con el códec eficiente:
+  el mismo contenedor y la misma calidad que graba la cámara del sistema.
+- **Acceso directo a Fotos** en una esquina, con la miniatura de tu último vídeo.
+- **60 fps** cuando la cámara del modelo los da. Con las dos cámaras a la vez no
+  entra, y ahí se graba a lo de siempre.
+- **Exposición y linterna** a mano, sin salir de la pantalla de grabar, y se
+  pueden mover en mitad de una toma. La corrección de exposición se guarda.
 - **La línea de lectura se mueve**: subirla te acerca al objetivo de la cámara
   frontal, que es lo que hace que parezca que miras a cámara.
 - **Graba con las dos cámaras a la vez**: una llena el cuadro y la otra va en un
@@ -71,6 +77,7 @@ Cuando Expo publique el arreglo, borra el parche y quita `patch-package`.
 | `lib/useScriptScroll.ts`   | El bucle de desplazamiento, en el hilo de UI.                        |
 | `lib/useSettings.ts`       | Lectura y guardado diferido de los ajustes.                          |
 | `lib/useRecorder.ts`       | Ciclo de una toma y guardado en el Carrete.                          |
+| `lib/useLastVideo.ts`      | El último vídeo del Carrete, para el acceso directo a Fotos.         |
 | `lib/zoom.ts`              | Las dos escalas de zoom de VisionCamera y las paradas de lente.      |
 | `components/`              | Banda del guion, barra de controles, botones de lente y ajustes.     |
 

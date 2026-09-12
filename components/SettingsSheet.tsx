@@ -34,6 +34,8 @@ type Props = {
   availableStabilization: readonly StabilizationChoice[];
   /** Lentes que este iPhone tiene detrás; con una sola, la fila no aparece. */
   availableLenses: readonly LensChoice[];
+  /** ¿Graba esta cámara a 60 fps? Si no, el interruptor sale apagado y muerto. */
+  supportsHighFrameRate: boolean;
   /** ¿Admite este iPhone una sesión con las dos cámaras a la vez? */
   supportsDualCamera: boolean;
   /** La estabilización pedida no cupo con las dos cámaras y se abrió sin ella. */
@@ -54,6 +56,7 @@ export function SettingsSheet({
   settings,
   availableStabilization,
   availableLenses,
+  supportsHighFrameRate,
   supportsDualCamera,
   stabilizationDropped,
   update,
@@ -275,6 +278,27 @@ export function SettingsSheet({
                     {t('settings.stabilizationDropped')}
                   </Text>
                 ) : null}
+              </View>
+
+              <View style={styles.switchRow}>
+                <View style={styles.switchText}>
+                  <View style={styles.labelGroup}>
+                    <MaterialCommunityIcons name="filmstrip" size={17} color="#8e8e93" />
+                    <Text style={styles.label}>{t('settings.highFrameRate')}</Text>
+                  </View>
+                  <Text style={styles.hint}>
+                    {supportsHighFrameRate
+                      ? t('settings.highFrameRateHint')
+                      : t('settings.highFrameRateUnsupported')}
+                  </Text>
+                </View>
+                <Switch
+                  value={settings.highFrameRate && supportsHighFrameRate}
+                  onValueChange={(highFrameRate) => update({ highFrameRate })}
+                  disabled={!supportsHighFrameRate}
+                  trackColor={{ true: ACCENT, false: '#3a3a3c' }}
+                  thumbColor="#fff"
+                />
               </View>
 
               <View style={styles.switchRow}>

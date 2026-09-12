@@ -49,6 +49,12 @@ const es = {
   'settings.stabilizationHint':
     'Cuanto más estabiliza, más recorta el encuadre. Si estás grabando, el cambio ' +
     'entra al parar: cambiarla en caliente cortaría la toma.',
+  'settings.highFrameRate': 'Grabar a 60 fps',
+  'settings.highFrameRateHint':
+    'El doble de fotogramas: los gestos y los movimientos de cabeza salen sin estela. ' +
+    'Ocupa el doble y, si no cabe con la estabilización que has pedido, manda esto y ' +
+    'la estabilización cae. Con las dos cámaras no entra: ahí se graba a lo de siempre.',
+  'settings.highFrameRateUnsupported': 'Esta cámara no graba a 60 fps.',
   'settings.dual': 'Grabar con las dos cámaras',
   'settings.dualHint':
     'Una llena el cuadro y la otra va en un recuadro que puedes arrastrar donde ' +
@@ -77,6 +83,7 @@ const es = {
   'settings.emptyScript': 'Sin guion todavía',
   'recorder.savingTitle': 'Guardando el vídeo',
   'recorder.savingBody': 'Se están juntando las dos tomas en un solo vídeo. No cierres la app.',
+  'recorder.savingBodyOne': 'La toma se está cerrando y copiando al Carrete. No cierres la app.',
   'settings.lenses': 'Lentes de la cámara trasera',
   'settings.lensesHint':
     'Con cuáles quieres encuadrar. Quitar lentes también quita sus paradas de zoom, ' +
@@ -92,6 +99,10 @@ const es = {
   'controls.record': 'Grabar',
   'controls.stop': 'Parar de grabar',
   'controls.flip': 'Cambiar de cámara',
+  'controls.gallery': 'Abrir el último vídeo en Fotos',
+  'controls.torch': 'Linterna',
+  'controls.exposure': 'Exposición',
+  'controls.exposureReset': 'Volver a la exposición automática',
   'prompter.tapHint': 'Toca el guion para que avance solo',
   'camera.searching': 'Buscando cámara…',
   'camera.noPermission': 'Falta permiso de cámara',
@@ -150,6 +161,12 @@ const en: Record<TextKey, string> = {
   'settings.stabilizationHint':
     'The more it stabilizes, the more it crops the frame. While recording, the change ' +
     'lands when you stop: switching mid-take would break the recording.',
+  'settings.highFrameRate': 'Record at 60 fps',
+  'settings.highFrameRateHint':
+    'Twice the frames: gestures and head turns come out without smearing. It takes ' +
+    'twice the space, and if it does not fit with the stabilization you asked for, ' +
+    'this wins and stabilization drops. It does not fit with both cameras at once.',
+  'settings.highFrameRateUnsupported': 'This camera cannot record at 60 fps.',
   'settings.dual': 'Record with both cameras',
   'settings.dualHint':
     'One fills the frame and the other sits in a box you can drag anywhere. ' +
@@ -178,6 +195,7 @@ const en: Record<TextKey, string> = {
   'settings.emptyScript': 'No script yet',
   'recorder.savingTitle': 'Saving the video',
   'recorder.savingBody': 'Both takes are being merged into a single video. Do not close the app.',
+  'recorder.savingBodyOne': 'The take is being closed and copied to your Photos. Do not close the app.',
   'settings.lenses': 'Back camera lenses',
   'settings.lensesHint':
     'Which ones you want to frame with. Dropping a lens also drops its zoom stop, ' +
@@ -193,6 +211,10 @@ const en: Record<TextKey, string> = {
   'controls.record': 'Record',
   'controls.stop': 'Stop recording',
   'controls.flip': 'Switch camera',
+  'controls.gallery': 'Open the latest video in Photos',
+  'controls.torch': 'Torch',
+  'controls.exposure': 'Exposure',
+  'controls.exposureReset': 'Back to automatic exposure',
   'prompter.tapHint': 'Tap the script to scroll it',
   'camera.searching': 'Looking for the camera…',
   'camera.noPermission': 'Camera permission needed',

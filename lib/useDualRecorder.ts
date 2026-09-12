@@ -24,7 +24,7 @@ export type DualRecorderState = {
   duration: number;
   isBusy: boolean;
   /** El montaje está en marcha; la toma ya ha parado. */
-  isComposing: boolean;
+  isProcessing: boolean;
   toggle: () => void;
   /**
    * Apunta dónde está el recuadro ahora mismo, mientras se arrastra.
@@ -56,6 +56,8 @@ type Options = {
   shot: DualShot;
   /** Proporción de la pantalla, para traducir esas fracciones al lienzo. */
   screenAspect: number;
+  /** Se llama cuando el montaje ya está en el Carrete. */
+  onSaved?: () => void;
 };
 
 const TICK = 250;
@@ -88,11 +90,21 @@ async function discard(recorder: Recorder | undefined): Promise<void> {
   await recorder.cancelRecording().catch(() => undefined);
 }
 
-export function useDualRecorder({ back, front, shot, screenAspect }: Options): DualRecorderState {
+export function useDualRecorder({
+  back,
+  front,
+  shot,
+  screenAspect,
+  onSaved,
+}: Options): DualRecorderState {
   const takes = useRef<Take[]>([]);
+  // Por referencia, igual que el encuadre: la toma arrancó hace rato y quien
+  // avisa tiene que ser el de ahora, no el del render en que se creó.
+  const saved = useRef(onSaved);
+  saved.current = onSaved;
   const [isRecording, setIsRecording] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
-  const [isComposing, setIsComposing] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [duration, setDuration] = useState(0);
   const [permission, requestPermission] = MediaLibrary.usePermissions({ writeOnly: true });
 
@@ -252,6 +264,7 @@ export function useDualRecorder({ back, front, shot, screenAspect }: Options): D
           output,
         });
         await saveToLibrary(composed);
+        saved.current?.();
         // El Carrete ya tiene su copia: lo que queda en disco son tres vídeos
         // de 1080p por toma que no vuelve a abrir nadie.
         for (const path of [backPath, frontPath, composed]) void deleteFile(path);
@@ -266,7 +279,7 @@ export function useDualRecorder({ back, front, shot, screenAspect }: Options): D
         takes.current = [];
         segments.current = [];
         if (alive.current) {
-          setIsComposing(false);
+          setIsProcessing(false);
           setIsBusy(false);
         }
       });
@@ -276,7 +289,7 @@ export function useDualRecorder({ back, front, shot, screenAspect }: Options): D
     // El aviso se enciende aquí y no al empezar el montaje: cerrar dos ficheros
     // de 1080p ya tarda lo suyo —más aún con estabilización—, y sin nada en
     // pantalla ese rato parece que el botón no ha hecho caso.
-    if (alive.current) setIsComposing(true);
+    if (alive.current) setIsProcessing(true);
     // El botón se queda ocupado hasta que los ficheros estén cerrados y montados
     // —lo suelta el `finally` de arriba—. Si se soltara al parar, un segundo
     // toque llamaría a `stopRecording` sobre una grabadora ya parada, que lanza,
@@ -287,7 +300,7 @@ export function useDualRecorder({ back, front, shot, screenAspect }: Options): D
   }, []);
 
   const toggle = useCallback(() => {
-    if (isBusy || isComposing) return;
+    if (isBusy || isProcessing) return;
     setIsBusy(true);
     if (isRecording) {
       stop()
@@ -310,7 +323,7 @@ export function useDualRecorder({ back, front, shot, screenAspect }: Options): D
         // Grabando ya se puede volver a pulsar: lo siguiente es parar.
         if (alive.current) setIsBusy(false);
       });
-  }, [isBusy, isComposing, isRecording, start, stop]);
+  }, [isBusy, isProcessing, isRecording, start, stop]);
 
-  return { isRecording, duration, isBusy, isComposing, toggle, trackMove };
+  return { isRecording, duration, isBusy, isProcessing, toggle, trackMove };
 }

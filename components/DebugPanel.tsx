@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import type { CameraDevice, CameraSessionConfig } from 'react-native-vision-camera';
 
+import { HIGH_FPS } from '../lib/prompterSettings';
 import type { ScriptScroll } from '../lib/useScriptScroll';
 import { toDisplay, type ZoomScale } from '../lib/zoom';
 
@@ -70,11 +71,21 @@ export function DebugPanel({ device, scale, scroll, sessionConfig }: Props) {
         .filter((mode) => device.supportsVideoStabilizationMode(mode))
         .join(', ') || '—'}`,
     );
+    lines.push(`admite 60 fps   ${device.supportsFPS(HIGH_FPS)}`);
+    lines.push(
+      `exposición      ${
+        device.supportsExposureBias
+          ? `${device.minExposureBias} … ${device.maxExposureBias} EV`
+          : 'no admite'
+      }`,
+    );
+    lines.push(`flash           ${device.hasTorch}`);
   }
 
   // Lo pedido y lo concedido no tienen por qué coincidir: la sesión negocia el
   // modo con la resolución, los FPS y el resto de salidas. Si aquí sale otra
   // cosa de la que pusiste en los ajustes, es que la cámara no puede darla.
+  lines.push(`fps             ${sessionConfig?.selectedFPS ?? '(el que salga)'}`);
   lines.push(
     `estab. vídeo    ${sessionConfig?.selectedVideoStabilizationMode ?? '(sin sesión)'}`,
   );
@@ -87,9 +98,16 @@ export function DebugPanel({ device, scale, scroll, sessionConfig }: Props) {
   } else {
     lines.push(`ratio vis/crudo ${scale.ratio.toFixed(4)}`);
     lines.push(`minRaw / maxRaw ${scale.minRaw.toFixed(2)} / ${scale.maxRaw.toFixed(2)}`);
-    lines.push(`paradas crudas  [${scale.stopsRaw.map((v) => v.toFixed(2)).join(', ')}]`);
+    lines.push(`paradas crudas  [${scale.stops.map(({ raw }) => raw.toFixed(2)).join(', ')}]`);
     lines.push(
-      `paradas visibles [${scale.stopsRaw.map((v) => toDisplay(v, scale).toFixed(2)).join(', ')}]`,
+      `paradas visibles [${scale.stops
+        .map(({ raw }) => toDisplay(raw, scale).toFixed(2))
+        .join(', ')}]`,
+    );
+    // Sin esto no hay forma de ver si una parada es óptica de verdad o un
+    // recorte de la lente de al lado.
+    lines.push(
+      `lente por parada [${scale.stops.map(({ lens }) => lens ?? '—').join(', ')}]`,
     );
   }
 
