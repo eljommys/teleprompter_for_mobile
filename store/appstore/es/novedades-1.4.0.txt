@@ -13,5 +13,11 @@ Encima del zoom aparece la miniatura de lo último que has grabado. Tócala y se
 COMO LA CÁMARA DEL SISTEMA
 Las tomas se guardan en el mismo contenedor y con el mismo códec que usa la cámara del iPhone, sin recomprimir nada por el camino. Y al parar, una pantalla te acompaña mientras el vídeo llega al Carrete.
 
-LAS LENTES, DONDE DEBEN ESTAR
-Cada parada de zoom lleva ahora el icono de la lente que usa, así que de un vistazo sabes cuándo estás en óptica de verdad y cuándo en aumento digital. Las paradas salen en su factor correcto, gires a la cámara frontal y vuelvas las veces que quieras, y si limitas la trasera a una sola lente ahora graba de verdad con esa.
+CADA PARADA DICE CON QUÉ LENTE GRABA
+Los botones de zoom llevan ahora el icono de su lente, así que de un vistazo sabes cuándo estás en óptica de verdad y cuándo en aumento digital.
+
+ARREGLADO
+El 0,5× de la cámara trasera desaparecía si girabas a la frontal y volvías: las paradas se quedaban con los números de la otra cámara.
+Las paradas salían en factores que no eran. Donde tu iPhone tiene 0,5×, 1× y 5×, la app enseñaba 0,5×, 2× y 10×, y el 1× no aparecía por ninguna parte.
+Limitar la cámara trasera a una sola lente abría otra distinta: dejando solo la gran angular, grababa con la principal.
+Y esa lente suelta se etiquetaba como 1× en vez de con su factor de verdad.

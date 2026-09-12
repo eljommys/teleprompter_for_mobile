@@ -13,5 +13,11 @@ A thumbnail of the last thing you recorded sits above the zoom. Tap it and it op
 LIKE THE SYSTEM CAMERA
 Takes are saved in the same container and with the same codec the iPhone camera uses, with no re-compression along the way. And when you stop, a screen keeps you company while the video lands in your Photos.
 
-LENSES WHERE THEY BELONG
-Every zoom stop now carries the icon of the lens it uses, so you can tell at a glance when you are on real optics and when on digital zoom. Stops show their correct factor no matter how many times you flip to the front camera and back, and if you limit the back camera to a single lens it now really records with that one.
+EVERY STOP TELLS YOU ITS LENS
+The zoom buttons now carry the icon of the lens they use, so you can tell at a glance when you are on real optics and when on digital zoom.
+
+FIXED
+The back camera's 0.5× vanished if you flipped to the front camera and back: the stops were left holding the other camera's numbers.
+Stops showed the wrong factors. Where your iPhone has 0.5×, 1× and 5×, the app showed 0.5×, 2× and 10×, and the 1× was nowhere to be found.
+Limiting the back camera to a single lens opened a different one: leaving only the ultra wide, it recorded with the main camera.
+And that lone lens was labelled 1× instead of its real factor.
