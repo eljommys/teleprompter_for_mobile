@@ -1,0 +1,17 @@
+=== WHAT'S NEW 1.4.0 (4000) ===
+More control over the take without leaving the recording screen: light, exposure, 60 fps, and your latest video one tap away.
+
+60 FPS WHEN YOUR IPHONE CAN
+Twice the frames: gestures and head turns come out clean, with no smearing. You turn it on in the settings, and it only shows up if your camera supports it.
+
+EXPOSURE AND TORCH AT HAND
+Bring the exposure down when the background is blowing out your face, or turn the light on to shoot in the dark. Both move mid-take without cutting it, and the exposure stays put for next time.
+
+YOUR LATEST VIDEO, ONE TAP AWAY
+A thumbnail of the last thing you recorded sits above the zoom. Tap it and it opens in Photos.
+
+LIKE THE SYSTEM CAMERA
+Takes are saved in the same container and with the same codec the iPhone camera uses, with no re-compression along the way. And when you stop, a screen keeps you company while the video lands in your Photos.
+
+LENSES WHERE THEY BELONG
+Every zoom stop now carries the icon of the lens it uses, so you can tell at a glance when you are on real optics and when on digital zoom. Stops show their correct factor no matter how many times you flip to the front camera and back, and if you limit the back camera to a single lens it now really records with that one.
